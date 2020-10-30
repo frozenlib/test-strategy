@@ -1,0 +1,5 @@
+error[E0308]: mismatched types
+ --> $DIR/invalid_weight.rs:4:14
+  |
+4 |     #[weight(1.1)]
+  |              ^^^ expected `u32`, found floating-point number

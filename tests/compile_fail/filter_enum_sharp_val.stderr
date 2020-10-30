@@ -1,0 +1,5 @@
+error: cannot use `#x` in this position.
+ --> $DIR/filter_enum_sharp_val.rs:3:11
+  |
+3 | #[filter(#x > #y)]
+  |           ^

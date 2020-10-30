@@ -1,0 +1,26 @@
+[package]
+name = "test-strategy"
+version = "0.1.0"
+authors = ["frozenlib"]
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+repository = "https://github.com/frozenlib/test-strategy"
+documentation = "https://docs.rs/test-strategy/"
+keywords = ["macro", "testing", "proptest"]
+categories = ["development-tools::testing"]
+description = "Procedural macro to easily write higher-order strategies in proptest."
+edition = "2018"
+
+
+[lib]
+proc-macro = true
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+syn = { version = "1.0", features = ["visit", "full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+proptest = "0.10"
+trybuild = "1.0.35"

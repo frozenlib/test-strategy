@@ -1,0 +1,10 @@
+error[E0277]: the trait bound `TestArgs: std::default::Default` is not satisfied
+  --> $DIR/args_not_impl_default.rs:6:20
+   |
+6  | #[arbitrary(args = TestArgs)]
+   |                    ^^^^^^^^ the trait `std::default::Default` is not implemented for `TestArgs`
+   |
+  ::: C:/Users/ris/.cargo/registry/src/github.com-1ecc6299db9ec823/proptest-0.10.1/src/arbitrary/traits.rs:54:22
+   |
+54 |     type Parameters: Default;
+   |                      ------- required by this bound in `proptest::arbitrary::Arbitrary`

@@ -1,0 +1,7 @@
+error: found cyclic dependency. (x -> x)
+ --> $DIR/self_dependency.rs:2:10
+  |
+2 | #[derive(Arbitrary, Debug)]
+  |          ^^^^^^^^^
+  |
+  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)

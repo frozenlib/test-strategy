@@ -1,0 +1,5 @@
+error: cannot find value `#y` in this scope.
+ --> $DIR/sharp_val_not_found_field.rs:4:20
+  |
+4 |     #[strategy(0..#y)]
+  |                    ^
