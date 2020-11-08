@@ -268,6 +268,21 @@ fn auto_bound() {
 }
 
 #[test]
+fn bound_both() {
+    use proptest::arbitrary::any_with;
+    use test_strategy::Arbitrary;
+
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(bound(T1, ..))]
+    struct TestInput<T1, T2> {
+        #[strategy(any_with::<T1>(Default::default()))]
+        x: T1,
+
+        y: T2,
+    }
+}
+
+#[test]
 fn manual_bound_type() {
     use proptest::arbitrary::any_with;
     use test_strategy::Arbitrary;
