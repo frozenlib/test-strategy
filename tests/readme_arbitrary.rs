@@ -240,7 +240,7 @@ fn arbitrary_args() {
 }
 
 #[test]
-fn auto_bound() {
+fn bound_auto() {
     use proptest::{
         arbitrary::any, arbitrary::Arbitrary, strategy::BoxedStrategy, strategy::Strategy,
     };
@@ -283,7 +283,7 @@ fn bound_both() {
 }
 
 #[test]
-fn manual_bound_type() {
+fn bound_manual_type() {
     use proptest::arbitrary::any_with;
     use test_strategy::Arbitrary;
 
@@ -296,7 +296,7 @@ fn manual_bound_type() {
 }
 
 #[test]
-fn manual_bound_predicate() {
+fn bound_manual_predicate() {
     use proptest::arbitrary::{any_with, Arbitrary};
     use test_strategy::Arbitrary;
 
