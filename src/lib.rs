@@ -479,6 +479,8 @@ You can change the configuration of a property test by setting the argument of `
 
 ```rust
 use proptest::prelude::ProptestConfig;
+use test_strategy::proptest;
+
 
 #[proptest(ProptestConfig { cases : 1000, ..ProptestConfig::default() })]
 fn my_test_with_config(_input: i32) {
@@ -492,6 +494,7 @@ The example below is equivalent to the one above.
 
 ```rust
 use proptest::prelude::ProptestConfig;
+use test_strategy::proptest;
 
 #[proptest(ProptestConfig::default(), cases = 1000)]
 fn my_test_with_config_2(_input: i32) {
@@ -505,6 +508,7 @@ fn my_test_with_config_3(_input: i32) {
 ```
 
 */
+
 extern crate proc_macro;
 
 #[macro_use]
