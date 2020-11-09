@@ -24,3 +24,9 @@ fn my_test_with_config_2(_input: i32) {
 fn my_test_with_config_3(_input: i32) {
     // ...
 }
+
+// #[proptest]
+// #[proptest_dump]
+// fn my_test(_input: i32) {
+//     // ...
+// }
