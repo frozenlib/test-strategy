@@ -267,6 +267,35 @@ fn any_with_args_expr() {
     assert_arbitrary(any_with::<Vec<u16>>(size_range(0..16).lift()).prop_map(|x| TestStruct { x }));
 }
 
+mod sub_mod {
+
+    #[allow(dead_code)]
+    #[derive(Default)]
+    pub struct TestArgsNoConstruct {
+        a: u32,
+    }
+    impl TestArgsNoConstruct {
+        pub fn new() -> Self {
+            Self { a: 0 }
+        }
+    }
+}
+
+#[test]
+fn any_with_args_expr_private_constructor() {
+    #[derive(Arbitrary, Debug)]
+    #[arbitrary(args = sub_mod::TestArgsNoConstruct)]
+    struct Inner {
+        x: u32,
+    }
+
+    #[derive(Arbitrary, Debug)]
+    struct TestInput {
+        #[any(sub_mod::TestArgsNoConstruct::new())]
+        inner: Inner,
+    }
+}
+
 #[test]
 fn any_with_args_field() {
     #[derive(Default)]
