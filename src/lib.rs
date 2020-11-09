@@ -11,8 +11,8 @@ Each of these macros is an alternative to the following proptest's official macr
 
 The macros provided by this crate have the following advantages over the proptest's official macros.
 
-- Supports higher-order strategies.
-- Code formatting is not disabled.
+- Supports higher-order strategies. (`#[derive(Arbitrary)]` and `#[proptest]`)
+- Code formatting is not disabled. (`#[proptest]`)
 
 However, the syntax of this crate's macros are not compatible with the syntax of the official macros.
 
