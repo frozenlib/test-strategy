@@ -337,6 +337,7 @@ impl Parse for ArbitraryArg {
 //     }
 // }
 
+#[allow(clippy::large_enum_variant)]
 enum Bound {
     Type(Type),
     Predicate(WherePredicate),
