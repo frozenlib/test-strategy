@@ -12,11 +12,14 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
         attr_args = Some(parse2::<Args>(attr)?);
     }
     let mut dump = false;
-    for attr in &item_fn.attrs {
+    item_fn.attrs.retain(|attr| {
         if attr.path.is_ident("proptest_dump") {
             dump = true;
+            false
+        } else {
+            true
         }
-    }
+    });
     let args_type_str = format!("_{}Args", to_camel_case(&item_fn.sig.ident.to_string()));
     let args_type_ident: Ident = parse_str(&args_type_str).unwrap();
     let args_fields = item_fn
