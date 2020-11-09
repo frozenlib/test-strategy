@@ -96,7 +96,7 @@ So the following two codes are equivalent.
 use test_strategy::Arbitrary;
 
 #[derive(Arbitrary, Debug)]
-struct MyStruct {
+struct TestInput {
     x: u32,
     y: u32,
 }
@@ -109,11 +109,11 @@ use proptest::{
 };
 
 #[derive(Debug)]
-struct MyStruct {
+struct TestInput {
     x: u32,
     y: u32,
 }
-impl Arbitrary for MyStruct {
+impl Arbitrary for TestInput {
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -135,7 +135,7 @@ In the following example, the value of field `x` will be less than 20.
 use test_strategy::Arbitrary;
 
 #[derive(Arbitrary, Debug)]
-struct MyStruct {
+struct TestInput {
     #[strategy(0..20u32)]
     x: u32,
 }
@@ -149,7 +149,7 @@ In the following example, the value of `y` is less than or equal to `x`.
 use test_strategy::Arbitrary;
 
 #[derive(Arbitrary, Debug)]
-struct MyStruct {
+struct TestInput {
     x: u32,
     #[strategy(0..=#x)]
     y: u32,
@@ -165,7 +165,7 @@ use proptest::collection::size_range;
 use test_strategy::Arbitrary;
 
 #[derive(Arbitrary, Debug, PartialEq)]
-struct MyStruct {
+struct TestInput {
     #[any(size_range(0..16).lift())]
     x: Vec<u16>,
 }
