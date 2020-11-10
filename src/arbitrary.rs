@@ -289,54 +289,6 @@ impl Parse for ArbitraryArg {
     }
 }
 
-// enum Quotable<T> {
-//     Direct(T),
-//     Quoted(ItemsOf<T>),
-// }
-// impl<T: Parse> Parse for Quotable<T> {
-//     fn parse(input: ParseStream) -> Result<Self> {
-//         let fork = input.fork();
-//         if let Ok(lit) = fork.parse::<LitStr>() {
-//             input.advance_to(&fork);
-//             let token: TokenStream = parse_str(&lit.value())?;
-//             let tokens = quote_spanned!(lit.span()=> #token);
-//             Ok(Quotable::Quoted(parse2(tokens)?))
-//         } else {
-//             Ok(Quotable::Direct(input.parse()?))
-//         }
-//     }
-// }
-// impl<T> Quotable<T> {
-//     fn into_iter(self) -> impl IntoIterator<Item = T> {
-//         let items = match self {
-//             Self::Direct(item) => vec![item],
-//             Self::Quoted(items) => items.items.into_iter().collect(),
-//         };
-//         items.into_iter()
-//     }
-// }
-
-// struct ItemsOf<T> {
-//     items: Punctuated<T, Token![,]>,
-// }
-// impl<T: Parse> Parse for ItemsOf<T> {
-//     fn parse(input: ParseStream) -> Result<Self> {
-//         Ok(Self {
-//             items: Punctuated::parse_terminated(input)?,
-//         })
-//     }
-// }
-// impl<T> ItemsOf<T> {
-//     fn into_iter(self) -> impl Iterator<Item = T> {
-//         self.items.into_iter()
-//     }
-// }
-// impl<T> ItemsOf<Quotable<T>> {
-//     fn into_flatten(self) -> impl Iterator<Item = T> {
-//         self.into_iter().flat_map(|x| x.into_iter())
-//     }
-// }
-
 #[allow(clippy::large_enum_variant)]
 enum Bound {
     Type(Type),
