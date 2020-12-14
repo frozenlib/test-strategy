@@ -18,8 +18,8 @@ proc-macro = true
 
 [dependencies]
 syn = { version = "1.0.54", features = ["visit", "full"] }
-quote = "1.0"
-proc-macro2 = "1.0"
+quote = "1.0.7"
+proc-macro2 = "1.0.24"
 
 [dev-dependencies]
 proptest = "0.10"
