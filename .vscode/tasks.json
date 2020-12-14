@@ -138,5 +138,23 @@
         "clear": true
       }
     },
+    {
+      "type": "shell",
+      "label": "cargo update minimal-versions",
+      "command": "cargo",
+      "args": [
+        "+nightly",
+        "update",
+        "-Z",
+        "minimal-versions"
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
   ]
 }
