@@ -17,6 +17,12 @@ jobs:
         run: cargo test --verbose --no-run
       - name: Run tests
         run: cargo test --verbose
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
       - name: Set minimal versions
         run: cargo +nightly update -Z minimal-versions
       - name: Build tests (minimal versions)
