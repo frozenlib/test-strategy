@@ -403,7 +403,7 @@ impl<T: Arbitrary + 'static> Arbitrary for TestInputB<T> {
 }
 ```
 
-Types of fields with `#[strategy]` do not set trait bounds automatically, so you need to set trait bound manually with `#[arbitrary(bound = T)]`.
+Types of fields with `#[strategy]` do not set trait bounds automatically, so you need to set trait bound manually with `#[arbitrary(bound(T))]`.
 
 ```rust
 use proptest::arbitrary::any_with;
