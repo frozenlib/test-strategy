@@ -1,22 +1,18 @@
-use std::{collections::HashMap, mem::take};
-
 use crate::syn_utils::{
     impl_trait_result, parse_parenthesized_args, to_valid_ident, Arg, Args, FieldKey,
     GenericParamSet, SharpVals,
 };
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
-use std::fmt::Write;
+use std::{collections::HashMap, fmt::Write, mem::take};
 use syn::{
     ext::IdentExt,
     parenthesized,
-    parse::discouraged::Speculative,
-    parse::{Parse, ParseStream},
+    parse::{discouraged::Speculative, Parse, ParseStream},
     parse2, parse_quote, parse_str,
     punctuated::Punctuated,
     spanned::Spanned,
-    token::Comma,
-    token::Dot2,
+    token::{Comma, Dot2},
     Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Fields, Ident, Index, Lit, Member,
     Path, Result, Token, Type, WherePredicate,
 };
