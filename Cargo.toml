@@ -20,6 +20,7 @@ proc-macro = true
 syn = { version = "1.0.54", features = ["visit", "full"] }
 quote = "1.0.7"
 proc-macro2 = "1.0.24"
+structmeta = { path = "../structmeta/structmeta" }
 
 [dev-dependencies]
 proptest = "1.0"

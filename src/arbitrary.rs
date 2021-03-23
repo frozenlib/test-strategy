@@ -5,16 +5,15 @@ use crate::syn_utils::{
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::{collections::HashMap, fmt::Write, mem::take};
+use structmeta::*;
 use syn::{
     ext::IdentExt,
-    parenthesized,
     parse::{discouraged::Speculative, Parse, ParseStream},
     parse2, parse_quote, parse_str,
-    punctuated::Punctuated,
     spanned::Spanned,
-    token::{Comma, Dot2},
+    token::Dot2,
     Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Fields, Ident, Index, Lit, Member,
-    Path, Result, Token, Type, WherePredicate,
+    Path, Result, Type, WherePredicate,
 };
 
 pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
@@ -28,30 +27,24 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
     let mut bound_predicates = Vec::new();
     for attr in &input.attrs {
         if attr.path.is_ident("arbitrary") {
-            let args = attr.parse_args_with(Punctuated::<ArbitraryArg, Comma>::parse_terminated)?;
-            for arg in args {
-                match arg {
-                    ArbitraryArg::Args(ty) => {
-                        type_parameters = quote_spanned!(ty.span()=> type Parameters = #ty);
-                    }
-                    ArbitraryArg::Dump => {
-                        dump = true;
-                    }
-                    ArbitraryArg::Bound(bounds) => {
-                        bound_exists = true;
-                        for bound in bounds.iter() {
-                            match bound {
-                                Bound::Type(ty) => bound_types.push(ty.clone()),
-                                Bound::Predicate(p) => bound_predicates.push(p.clone()),
-                                Bound::Default(..) => bound_default = true,
-                            }
-                        }
+            let args: ArbitraryArgs = attr.parse_args()?;
+            if let Some(args) = args.args {
+                let ty = &args.value;
+                type_parameters = quote_spanned!(ty.span()=> type Parameters = #ty);
+            }
+            dump = args.dump.value();
+            if let Some(bound) = args.bound {
+                bound_exists = true;
+                for bound in bound.args.iter() {
+                    match bound {
+                        Bound::Type(ty) => bound_types.push(ty.clone()),
+                        Bound::Predicate(p) => bound_predicates.push(p.clone()),
+                        Bound::Default(..) => bound_default = true,
                     }
                 }
             }
         }
     }
-
     let mut bound_types_default = Vec::new();
     let expr = match &input.data {
         Data::Struct(data) => expr_for_struct(&input, data, &mut bound_types_default)?,
@@ -125,7 +118,7 @@ fn expr_for_enum(
             if arg.is_zero() {
                 continue;
             } else {
-                let expr = arg.expr;
+                let expr = arg.0;
                 quote_spanned!(expr.span()=>  _to_weight(#expr))
             }
         } else {
@@ -167,19 +160,11 @@ fn expr_for_fields(
     b.build()
 }
 
-struct WeightArg {
-    expr: Expr,
-}
-impl Parse for WeightArg {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            expr: input.parse()?,
-        })
-    }
-}
+#[derive(StructMeta)]
+struct WeightArg(Expr);
 impl WeightArg {
     fn is_zero(&self) -> bool {
-        if let Expr::Lit(lit) = &self.expr {
+        if let Expr::Lit(lit) = &self.0 {
             if let Lit::Int(lit) = &lit.lit {
                 if let Ok(value) = lit.base10_parse::<u32>() {
                     return value == 0;
@@ -248,41 +233,11 @@ impl AnyArgs {
     }
 }
 
+#[derive(StructMeta)]
 struct ArbitraryArgs {
-    pub args: Punctuated<ArbitraryArg, Comma>,
-}
-impl Parse for ArbitraryArgs {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self {
-            args: Punctuated::parse_terminated(input)?,
-        })
-    }
-}
-
-enum ArbitraryArg {
-    Args(Type),
-    Bound(Punctuated<Bound, Token![,]>),
-    Dump,
-}
-impl Parse for ArbitraryArg {
-    fn parse(input: ParseStream) -> Result<Self> {
-        if input.peek(Ident) {
-            let name: Ident = input.parse()?;
-            if name == "args" {
-                let _eq_token: Token![=] = input.parse()?;
-                return Ok(ArbitraryArg::Args(input.parse()?));
-            }
-            if name == "bound" {
-                let conetnt;
-                let _paren_token = parenthesized!(conetnt in input);
-                return Ok(ArbitraryArg::Bound(Punctuated::parse_terminated(&conetnt)?));
-            }
-            if name == "dump" {
-                return Ok(ArbitraryArg::Dump);
-            }
-        }
-        Err(input.error("usage : #[arbitrary(args = T, bound(T, T, ..), dump)]"))
-    }
+    args: Option<NameValue<Type>>,
+    bound: Option<NameArgs<Vec<Bound>>>,
+    dump: Flag,
 }
 
 #[allow(clippy::large_enum_variant)]

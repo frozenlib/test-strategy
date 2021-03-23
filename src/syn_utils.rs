@@ -5,6 +5,7 @@ use std::{
     iter::once,
     ops::Deref,
 };
+use structmeta::{Parse, ToTokens};
 use syn::{
     ext::IdentExt,
     parenthesized,
@@ -67,7 +68,8 @@ pub fn parse_parenthesized_args(input: TokenStream) -> Result<Args> {
     }
 }
 
-pub struct Args(Punctuated<Arg, Comma>);
+#[derive(Parse)]
+pub struct Args(#[parse(terminated)] Punctuated<Arg, Comma>);
 
 impl Args {
     fn new() -> Self {
@@ -103,52 +105,16 @@ impl IntoIterator for Args {
     }
 }
 
-impl Parse for Args {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self(Punctuated::parse_terminated(input)?))
-    }
-}
-
+#[derive(ToTokens, Parse)]
 pub enum Arg {
     NameValue {
+        #[parse(peek, any)]
         name: Ident,
+        #[parse(peek)]
         eq_token: Token![=],
         value: Expr,
     },
     Value(Expr),
-}
-
-impl Parse for Arg {
-    fn parse(input: ParseStream) -> Result<Self> {
-        Ok(if input.peek(Ident::peek_any) && input.peek2(Token![=]) {
-            let name = Ident::parse_any(input)?;
-            let eq_token = input.parse::<Token![=]>()?;
-            let value = input.parse()?;
-            Arg::NameValue {
-                name,
-                eq_token,
-                value,
-            }
-        } else {
-            Arg::Value(input.parse()?)
-        })
-    }
-}
-impl ToTokens for Arg {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::NameValue {
-                name,
-                eq_token,
-                value,
-            } => {
-                name.to_tokens(tokens);
-                eq_token.to_tokens(tokens);
-                value.to_tokens(tokens);
-            }
-            Self::Value(value) => value.to_tokens(tokens),
-        }
-    }
 }
 
 pub struct SharpVals {
