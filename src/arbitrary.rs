@@ -19,7 +19,7 @@ use syn::{
 pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
     let mut dump = false;
     let mut type_parameters = quote! {
-        type Parameters = ()
+        type Parameters = ();
     };
     let mut bound_exists = false;
     let mut bound_default = false;
@@ -29,7 +29,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
         if attr.path.is_ident("arbitrary") {
             let args: ArbitraryArgs = attr.parse_args()?;
             if let Some(ty) = &args.args {
-                type_parameters = quote_spanned!(ty.span()=> type Parameters = #ty);
+                type_parameters = quote_spanned!(ty.span()=> type Parameters = #ty;);
             }
             dump = args.dump.value();
             if let Some(bound) = &args.bound {
@@ -64,7 +64,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
         &parse_quote!(proptest::arbitrary::Arbitrary),
         &bound_predicates,
         quote! {
-            #type_parameters;
+            #type_parameters
             type Strategy = proptest::strategy::BoxedStrategy<Self>;
             fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
                 #[allow(dead_code)]
