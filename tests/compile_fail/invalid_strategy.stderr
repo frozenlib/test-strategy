@@ -1,4 +1,4 @@
-error[E0271]: type mismatch resolving `<std::ops::Range<usize> as proptest::strategy::Strategy>::Value == u8`
+error[E0271]: type mismatch resolving `<std::ops::Range<usize> as Strategy>::Value == u8`
  --> $DIR/invalid_strategy.rs:4:16
   |
 2 | #[derive(Arbitrary, Debug)]
@@ -7,4 +7,4 @@ error[E0271]: type mismatch resolving `<std::ops::Range<usize> as proptest::stra
 4 |     #[strategy(0..10usize)]
   |                ^ expected `u8`, found `usize`
 5 |     x: u8,
-  |        -- required by this bound in `<TestStruct as proptest::arbitrary::Arbitrary>::arbitrary_with::_strategy_of_x`
+  |        -- required by this bound in `_strategy_of_x`

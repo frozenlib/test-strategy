@@ -1,10 +1,12 @@
-error[E0277]: the trait bound `TestArgs: std::default::Default` is not satisfied
-  --> $DIR/args_not_impl_default.rs:6:20
+error[E0277]: the trait bound `TestArgs: Default` is not satisfied
+  --> $DIR/args_not_impl_default.rs:5:10
    |
-6  | #[arbitrary(args = TestArgs)]
-   |                    ^^^^^^^^ the trait `std::default::Default` is not implemented for `TestArgs`
+5  | #[derive(Arbitrary, Debug, PartialEq)]
+   |          ^^^^^^^^^ the trait `Default` is not implemented for `TestArgs`
    |
-  ::: C:/Users/ris/.cargo/registry/src/github.com-1ecc6299db9ec823/proptest-0.10.1/src/arbitrary/traits.rs:54:22
+  ::: C:/Users/ris/.cargo/registry/src/github.com-1ecc6299db9ec823/proptest-1.0.0/src/arbitrary/traits.rs:54:22
    |
 54 |     type Parameters: Default;
-   |                      ------- required by this bound in `proptest::arbitrary::Arbitrary`
+   |                      ------- required by this bound in `proptest::arbitrary::Arbitrary::Parameters`
+   |
+   = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)
