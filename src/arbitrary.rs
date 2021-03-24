@@ -28,16 +28,16 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
     for attr in &input.attrs {
         if attr.path.is_ident("arbitrary") {
             let args: ArbitraryArgs = attr.parse_args()?;
-            if let Some(ty) = &args.args {
+            if let Some(ty) = args.args {
                 type_parameters = quote_spanned!(ty.span()=> type Parameters = #ty;);
             }
             dump = args.dump.value();
-            if let Some(bound) = &args.bound {
+            if let Some(bound) = args.bound {
                 bound_exists = true;
-                for bound in bound.iter() {
+                for bound in bound.into_iter() {
                     match bound {
-                        Bound::Type(ty) => bound_types.push(ty.clone()),
-                        Bound::Predicate(p) => bound_predicates.push(p.clone()),
+                        Bound::Type(ty) => bound_types.push(ty),
+                        Bound::Predicate(p) => bound_predicates.push(p),
                         Bound::Default(..) => bound_default = true,
                     }
                 }
