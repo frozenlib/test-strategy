@@ -7,7 +7,6 @@ use quote::{quote, quote_spanned, ToTokens};
 use std::{collections::HashMap, fmt::Write, mem::take};
 use structmeta::*;
 use syn::{
-    ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream},
     parse2, parse_quote, parse_str,
     spanned::Spanned,
@@ -174,37 +173,18 @@ impl WeightArg {
     }
 }
 
+#[derive(StructMeta)]
 struct AnyArgs {
+    #[struct_meta(unnamed)]
     initializer: Option<Expr>,
-    setters: Vec<(Ident, Expr)>,
+    setters: HashMap<String, NameValue<Expr>>,
 }
 impl AnyArgs {
     fn empty() -> Self {
         Self {
             initializer: None,
-            setters: Vec::new(),
+            setters: HashMap::new(),
         }
-    }
-    fn parse(args: Args) -> Result<Self> {
-        let mut initializer = None;
-        let mut setters = Vec::new();
-        for arg in args {
-            match arg {
-                Arg::NameValue { name, value, .. } => {
-                    setters.push((name, value));
-                }
-                Arg::Value(value) => {
-                    if initializer.is_some() {
-                        bail!(value.span(), "Unnamed argument can be specified only once.");
-                    }
-                    initializer = Some(value);
-                }
-            }
-        }
-        Ok(Self {
-            initializer,
-            setters,
-        })
     }
     fn into_strategy(self, ty: &Type) -> TokenStream {
         if self.initializer.is_none() && self.setters.is_empty() {
@@ -217,7 +197,8 @@ impl AnyArgs {
                 quote!(proptest::arbitrary::any_with::<#ty>(#init))
             } else {
                 let setters = self.setters.into_iter().map(|(name, expr)| {
-                    let member = ident_to_member(name);
+                    let member = Member::Named(to_valid_ident(&name).unwrap());
+                    let expr = &expr.value;
                     quote!(_any_args.#member = #expr;)
                 });
                 quote! {
@@ -438,8 +419,13 @@ impl StrategyBuilder {
                 }
                 if is_any_attr {
                     is_any = true;
-                    let ts = sharp_vals.expand(attr.tokens.clone())?;
-                    let any_attr = AnyArgs::parse(parse_parenthesized_args(ts)?)?;
+                    let any_attr: AnyArgs = if attr.tokens.is_empty() {
+                        AnyArgs::empty()
+                    } else {
+                        let ts: TokenStream = attr.parse_args()?;
+                        let ts = sharp_vals.expand(ts)?;
+                        parse2(ts)?
+                    };
                     strategy = Some(any_attr.into_strategy(&field.ty));
                 }
                 if attr.path.is_ident("by_ref") {
@@ -900,12 +886,6 @@ fn idx_to_member(idx: usize) -> Member {
         index,
         span: Span::call_site(),
     })
-}
-fn ident_to_member(ident: Ident) -> Member {
-    let span = ident.span();
-    let mut ident = to_valid_ident(&ident.unraw().to_string()).unwrap();
-    ident.set_span(span);
-    Member::Named(ident)
 }
 
 fn build_constructor(path: &Path, fields: &Fields, args: TokenStream) -> TokenStream {
