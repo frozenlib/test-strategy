@@ -937,7 +937,7 @@ fn manual_bound_type() {
     struct TestStruct<T> {
         #[strategy(any::<T>())]
         x: T,
-    };
+    }
 
     assert_arbitrary(any::<u16>().prop_map(|x| TestStruct { x }));
     assert_arbitrary(any::<u32>().prop_map(|x| TestStruct { x }));
@@ -952,7 +952,7 @@ fn manual_bound_type_x2() {
 
         #[strategy(any::<T2>())]
         y: T2,
-    };
+    }
 
     assert_arbitrary((any::<u16>(), any::<u32>()).prop_map(|(x, y)| TestStruct { x, y }));
 }
@@ -965,7 +965,7 @@ fn manual_bound_type_with_auto_bound() {
         #[strategy(any::<T1>())]
         x: T1,
         y: T2,
-    };
+    }
 
     assert_arbitrary((any::<u16>(), any::<u32>()).prop_map(|(x, y)| TestStruct { x, y }));
 }
@@ -977,7 +977,7 @@ fn manual_bound_predicate() {
     struct TestStruct<T> {
         #[strategy(any::<T>())]
         x: T,
-    };
+    }
 
     assert_arbitrary(any::<u16>().prop_map(|x| TestStruct { x }));
     assert_arbitrary(any::<u32>().prop_map(|x| TestStruct { x }));
@@ -993,7 +993,7 @@ fn manual_bound_predicate_x2() {
 
         #[strategy(any::<T2>())]
         y: T2,
-    };
+    }
 
     assert_arbitrary((any::<u16>(), any::<u32>()).prop_map(|(x, y)| TestStruct { x, y }));
 }
