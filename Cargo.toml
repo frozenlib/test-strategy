@@ -17,11 +17,11 @@ proc-macro = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-syn = { version = "1.0.54", features = ["visit", "full"] }
-quote = "1.0.7"
+syn = { version = "1.0.65", features = ["visit", "full"] }
+quote = "1.0.9"
 proc-macro2 = "1.0.24"
 structmeta = "0.1.0"
 
 [dev-dependencies]
-proptest = "1.0"
-trybuild = "1.0.35"
+proptest = "1.0.0"
+trybuild = "1.0.41"
