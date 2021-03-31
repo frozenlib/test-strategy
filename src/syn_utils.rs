@@ -12,10 +12,11 @@ use syn::{
     parse::{Parse, ParseStream},
     parse2, parse_str,
     punctuated::Punctuated,
+    spanned::Spanned,
     token::{Comma, Paren},
     visit::{visit_path, visit_type, Visit},
-    DeriveInput, Expr, Field, GenericParam, Generics, Ident, Lit, Path, Result, Token, Type,
-    WherePredicate,
+    Attribute, DeriveInput, Expr, Field, GenericParam, Generics, Ident, Lit, Path, Result, Token,
+    Type, WherePredicate,
 };
 
 macro_rules! bail {
@@ -334,5 +335,22 @@ pub fn to_valid_ident(s: &str) -> Result<Ident> {
         Ok(ident)
     } else {
         parse_str(&format!("r#{}", s))
+    }
+}
+
+pub fn parse_from_attrs<T: Parse + Default>(attrs: &[Attribute], name: &str) -> Result<T> {
+    let mut a = None;
+    for attr in attrs {
+        if attr.path.is_ident(name) {
+            if a.is_some() {
+                bail!(attr.span(), "attribute `{}` can specified only once", name);
+            }
+            a = Some(attr);
+        }
+    }
+    if let Some(a) = a {
+        a.parse_args()
+    } else {
+        Ok(T::default())
     }
 }

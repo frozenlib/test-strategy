@@ -2,66 +2,38 @@ use crate::syn_utils::{
     impl_trait_result, parse_parenthesized_args, to_valid_ident, Arg, Args, FieldKey,
     GenericParamSet, SharpVals,
 };
+use crate::{bound::*, syn_utils::parse_from_attrs};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use std::{collections::HashMap, fmt::Write, mem::take};
 use structmeta::*;
 use syn::{
-    parse::{discouraged::Speculative, Parse, ParseStream},
-    parse2, parse_quote, parse_str,
-    spanned::Spanned,
-    token::Dot2,
-    Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Fields, Ident, Index, Lit, Member,
-    Path, Result, Type, WherePredicate,
+    parse2, parse_quote, parse_str, spanned::Spanned, Attribute, Data, DataEnum, DataStruct,
+    DeriveInput, Expr, Fields, Ident, Index, Lit, Member, Path, Result, Type,
 };
 
 pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
-    let mut dump = false;
-    let mut type_parameters = quote! {
-        type Parameters = ();
-    };
-    let mut bound_exists = false;
-    let mut bound_default = false;
-    let mut bound_types = Vec::new();
-    let mut bound_predicates = Vec::new();
-    for attr in &input.attrs {
-        if attr.path.is_ident("arbitrary") {
-            let args: ArbitraryArgs = attr.parse_args()?;
-            if let Some(ty) = args.args {
-                type_parameters = quote_spanned!(ty.span()=> type Parameters = #ty;);
-            }
-            dump = args.dump.value();
-            if let Some(bound) = args.bound {
-                bound_exists = true;
-                for bound in bound.into_iter() {
-                    match bound {
-                        Bound::Type(ty) => bound_types.push(ty),
-                        Bound::Predicate(p) => bound_predicates.push(p),
-                        Bound::Default(..) => bound_default = true,
-                    }
-                }
-            }
+    let args: ArbitraryArgsForType = parse_from_attrs(&input.attrs, "arbitrary")?;
+    let type_parameters = if let Some(ty) = &args.args {
+        quote_spanned!(ty.span()=> type Parameters = #ty;)
+    } else {
+        quote! {
+            type Parameters = ();
         }
-    }
-    let mut bound_types_default = Vec::new();
+    };
+    let mut bounds = Bounds::from_data(args.bound);
     let expr = match &input.data {
-        Data::Struct(data) => expr_for_struct(&input, data, &mut bound_types_default)?,
-        Data::Enum(data) => expr_for_enum(&input, data, &mut bound_types_default)?,
+        Data::Struct(data) => expr_for_struct(&input, data, &mut bounds)?,
+        Data::Enum(data) => expr_for_enum(&input, data, &mut bounds)?,
         _ => bail!(
             input.span(),
             "`#[derive(Arbitrary)]` supports only enum and struct."
         ),
     };
-    if !bound_exists || bound_default {
-        bound_types.extend(bound_types_default);
-    }
-    for ty in bound_types {
-        bound_predicates.push(parse_quote!(#ty : proptest::arbitrary::Arbitrary + 'static));
-    }
     impl_trait_result(
         &input,
         &parse_quote!(proptest::arbitrary::Arbitrary),
-        &bound_predicates,
+        &bounds.build_wheres(quote!(proptest::arbitrary::Arbitrary + 'static)),
         quote! {
             #type_parameters
             type Strategy = proptest::strategy::BoxedStrategy<Self>;
@@ -74,13 +46,13 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
                 proptest::strategy::Strategy::boxed(#expr)
             }
         },
-        dump,
+        args.dump.value(),
     )
 }
 fn expr_for_struct(
     input: &DeriveInput,
     data: &DataStruct,
-    bound_types: &mut Vec<Type>,
+    bounds: &mut Bounds,
 ) -> Result<TokenStream> {
     let generics = GenericParamSet::new(&input.generics);
     expr_for_fields(
@@ -89,20 +61,17 @@ fn expr_for_struct(
         &data.fields,
         &input.attrs,
         true,
-        bound_types,
+        bounds,
     )
 }
-fn expr_for_enum(
-    input: &DeriveInput,
-    data: &DataEnum,
-    bound_types: &mut Vec<Type>,
-) -> Result<TokenStream> {
+fn expr_for_enum(input: &DeriveInput, data: &DataEnum, bounds: &mut Bounds) -> Result<TokenStream> {
     if data.variants.is_empty() {
         bail!(Span::call_site(), "zero variant enum was not supported.");
     }
     let generics = GenericParamSet::new(&input.generics);
     let mut exprs = Vec::new();
     for variant in &data.variants {
+        let args: ArbitraryArgsForFieldOrVariant = parse_from_attrs(&variant.attrs, "arbitrary")?;
         let mut weight = None;
         for attr in &variant.attrs {
             if attr.path.is_ident("weight") {
@@ -123,13 +92,14 @@ fn expr_for_enum(
             quote!(1)
         };
         let variant_ident = &variant.ident;
+        let mut bounds = bounds.child(args.bound);
         let expr = expr_for_fields(
             parse_quote!(Self::#variant_ident),
             &generics,
             &variant.fields,
             &variant.attrs,
             false,
-            bound_types,
+            &mut bounds,
         )?;
         exprs.push(quote! {#weight=> #expr});
     }
@@ -151,10 +121,10 @@ fn expr_for_fields(
     fields: &Fields,
     attrs: &[Attribute],
     filter_allow_fn: bool,
-    bound_types: &mut Vec<Type>,
+    bounds: &mut Bounds,
 ) -> Result<TokenStream> {
     let b = StrategyBuilder::from_fields(self_path, fields, attrs, filter_allow_fn)?;
-    bound_types.extend(b.get_bound_types(generics));
+    b.get_bound_types(generics, bounds)?;
     b.build()
 }
 
@@ -213,39 +183,16 @@ impl AnyArgs {
     }
 }
 
-#[derive(StructMeta)]
-struct ArbitraryArgs {
+#[derive(StructMeta, Default)]
+struct ArbitraryArgsForType {
     args: Option<Type>,
     bound: Option<Vec<Bound>>,
     dump: Flag,
 }
 
-#[allow(clippy::large_enum_variant)]
-enum Bound {
-    Type(Type),
-    Predicate(WherePredicate),
-    Default(Dot2),
-}
-impl Parse for Bound {
-    fn parse(input: ParseStream) -> Result<Self> {
-        if input.peek(Dot2) {
-            return Ok(Self::Default(input.parse()?));
-        }
-        let fork = input.fork();
-        match fork.parse() {
-            Ok(p) => {
-                input.advance_to(&fork);
-                Ok(Self::Predicate(p))
-            }
-            Err(e) => {
-                if let Ok(ty) = input.parse() {
-                    Ok(Self::Type(ty))
-                } else {
-                    Err(e)
-                }
-            }
-        }
-    }
+#[derive(StructMeta, Default)]
+struct ArbitraryArgsForFieldOrVariant {
+    bound: Option<Vec<Bound>>,
 }
 
 struct Filter {
@@ -516,17 +463,23 @@ impl StrategyBuilder {
             filters_fn,
         })
     }
-    fn get_bound_types(&self, generics: &GenericParamSet) -> Vec<Type> {
-        let mut bound_types = Vec::new();
+    fn get_bound_types(&self, generics: &GenericParamSet, bounds: &mut Bounds) -> Result<()> {
+        if !bounds.can_extend {
+            return Ok(());
+        }
         for (idx, field) in self.fields.iter().enumerate() {
-            if self.items[idx].is_any {
-                let ty = &field.ty;
-                if generics.contains_in_type(ty) {
-                    bound_types.push(ty.clone());
+            let args: ArbitraryArgsForFieldOrVariant = parse_from_attrs(&field.attrs, "arbitrary")?;
+            let mut bounds = bounds.child(args.bound);
+            if bounds.can_extend {
+                if self.items[idx].is_any {
+                    let ty = &field.ty;
+                    if generics.contains_in_type(ty) {
+                        bounds.ty.push(ty.clone());
+                    }
                 }
             }
         }
-        bound_types
+        Ok(())
     }
     fn build(mut self) -> Result<TokenStream> {
         if self.items.is_empty() {

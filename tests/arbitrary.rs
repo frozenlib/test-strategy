@@ -997,3 +997,31 @@ fn manual_bound_predicate_x2() {
 
     assert_arbitrary((any::<u16>(), any::<u32>()).prop_map(|(x, y)| TestStruct { x, y }));
 }
+
+#[test]
+fn manual_bound_field() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(bound(T : Copy + Arbitrary + 'static))]
+    struct Inner<T>(T);
+
+    #[derive(Arbitrary, Debug, PartialEq)]
+    pub struct Outer<T> {
+        #[arbitrary(bound(T : Debug + Copy + Arbitrary + 'static))]
+        x: Inner<T>,
+    }
+    assert_arbitrary(any::<u16>().prop_map(|x| Outer { x: Inner(x) }));
+}
+
+#[test]
+fn manual_bound_variant() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(bound(T : Copy + Arbitrary + 'static))]
+    pub struct Inner<T>(T);
+
+    #[derive(Arbitrary, Debug, PartialEq)]
+    pub enum Outer<T> {
+        #[arbitrary(bound(T : Debug + Copy + Arbitrary + 'static))]
+        X(Inner<T>),
+    }
+    assert_arbitrary(any::<u16>().prop_map(|x| Outer::X(Inner(x))));
+}

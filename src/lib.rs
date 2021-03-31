@@ -526,6 +526,7 @@ extern crate proc_macro;
 #[macro_use]
 mod syn_utils;
 mod arbitrary;
+mod bound;
 mod proptest_fn;
 
 use syn::{parse_macro_input, DeriveInput, ItemFn};
