@@ -44,7 +44,7 @@
       "label": "cargo test",
       "command": "cargo",
       "args": [
-        "test",
+        "test"
       ],
       "problemMatcher": [
         "$rustc"
@@ -56,31 +56,10 @@
       "presentation": {
         "panel": "dedicated",
         "clear": true
-      }
-    },
-    {
-      "type": "shell",
-      "label": "update compile error",
-      "command": "cargo",
-      "args": [
-        "test",
-        "--test",
-        "compile_fail",
-        "--",
-        "--ignored"
-      ],
-      "problemMatcher": [
-        "$rustc"
-      ],
-      "presentation": {
-        "panel": "dedicated",
-        "clear": true
       },
-      "options": {
-        "env": {
-          "TRYBUILD": "overwrite"
-        }
-      }
+      "dependsOn": [
+        "include doc"
+      ],
     },
     {
       "type": "shell",
@@ -115,7 +94,10 @@
       "presentation": {
         "panel": "dedicated",
         "clear": true
-      }
+      },
+      "dependsOn": [
+        "include doc"
+      ],
     },
     {
       "type": "shell",
@@ -140,6 +122,24 @@
     },
     {
       "type": "shell",
+      "label": "cargo bench",
+      "command": "cargo",
+      "args": [
+        "bench"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/benchmarks"
+      },
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "type": "shell",
       "label": "cargo update minimal-versions",
       "command": "cargo",
       "args": [
@@ -150,6 +150,64 @@
       ],
       "problemMatcher": [
         "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "type": "shell",
+      "label": "update compile error",
+      "command": "cargo",
+      "args": [
+        "test",
+        "--test",
+        "compile_fail",
+        "--",
+        "--ignored"
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+      "options": {
+        "env": {
+          "TRYBUILD": "overwrite"
+        }
+      }
+    },
+    {
+      "type": "shell",
+      "label": "include doc",
+      "command": "include-doc",
+      "args": [
+        "${workspaceFolder}"
+      ],
+      "problemMatcher": [
+        {
+          "owner": "include-doc",
+          "fileLocation": [
+            "relative",
+            "${workspaceFolder}"
+          ],
+          "pattern": [
+            {
+              "regexp": "^(error): (.*)$",
+              "severity": 1,
+              "message": 2,
+            },
+            {
+              "regexp": "^--> (.*):(\\d+)\\s*$",
+              "file": 1,
+              "line": 2,
+              "loop": true,
+            },
+          ]
+        },
       ],
       "presentation": {
         "panel": "dedicated",
