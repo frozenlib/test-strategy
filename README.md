@@ -8,10 +8,13 @@ This crate provides two procedural macros, `#[derive(Arbitrary)]` and `#[proptes
 
 Each of these macros is an alternative to the following proptest's official macros.
 
-| test-strategy                              | [proptest](https://crates.io/crates/proptest) | [proptest-derive](https://crates.io/crates/proptest-derive) |
-| ------------------------------------------ | --------------------------------------------- | ----------------------------------------------------------- |
-| [`#[derive(Arbitrary)]`](#derivearbitrary) |                                               | `#[derive(Arbitrary)]`                                      |
-| [`#[proptest]`](#proptest)                 | `proptest ! { }`                              |                                                             |
+| test-strategy                              | [proptest][]     | [proptest-derive][]    |
+| ------------------------------------------ | ---------------- | ---------------------- |
+| [`#[derive(Arbitrary)]`](#derivearbitrary) |                  | `#[derive(Arbitrary)]` |
+| [`#[proptest]`](#proptest)                 | `proptest ! { }` |                        |
+
+[proptest]: https://crates.io/crates/proptest
+[proptest-derive]: https://crates.io/crates/proptest-derive
 
 The macros provided by this crate have the following advantages over the proptest's official macros.
 
@@ -75,14 +78,16 @@ fn my_test(_x: u32, #[strategy(1..10u32)] y: u32, #[strategy(0..#y)] z: u32) {
 
 Helper attributes can be written in the following positions.
 
-| attribute                    | function | struct | enum | variant | field or function parameter |
-| ---------------------------- | -------- | ------ | ---- | ------- | --------------------------- |
-| [`#[strategy]`](#strategy)   |          |        |      |         | ✔                           |
-| [`#[any]`](#any)             |          |        |      |         | ✔                           |
-| [`#[weight]`](#weight)       |          |        |      | ✔       |                             |
-| [`#[filter]`](#filter)       | ✔        | ✔      | ✔    | ✔       | ✔                           |
-| [`#[by_ref]`](#by_ref)       |          |        |      |         | ✔                           |
-| [`#[arbitrary]`](#arbitrary) |          | ✔      | ✔    |         |                             |
+| attribute                                           | function | struct | enum | variant | field | function parameter |
+| --------------------------------------------------- | -------- | ------ | ---- | ------- | ----- | ------------------ |
+| [`#[strategy]`](#strategy)                          |          |        |      |         | ✔     | ✔                  |
+| [`#[any]`](#any)                                    |          |        |      |         | ✔     | ✔                  |
+| [`#[weight]`](#weight)                              |          |        |      | ✔       |       |                    |
+| [`#[filter]`](#filter)                              | ✔        | ✔      | ✔    | ✔       | ✔     | ✔                  |
+| [`#[by_ref]`](#by_ref)                              |          |        |      |         | ✔     | ✔                  |
+| [`#[arbitrary(args = T)]`](#arbitraryargs--t)       |          | ✔      | ✔    |         |       |                    |
+| [`#[arbitrary(bound(...))]`](#arbitraryboundt1-t2-) |          | ✔      | ✔    | ✔       | ✔     |                    |
+| [`#[arbitrary(dump)]`](#arbitrarydump)              |          | ✔      | ✔    |         |       |                    |
 
 ## `#[derive(Arbitrary)]`
 
