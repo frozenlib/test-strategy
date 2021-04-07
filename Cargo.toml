@@ -20,7 +20,7 @@ proc-macro = true
 syn = { version = "1.0.65", features = ["visit", "full"] }
 quote = "1.0.9"
 proc-macro2 = "1.0.24"
-structmeta = "0.1.2"
+structmeta = "0.1.3"
 
 [dev-dependencies]
 proptest = "1.0.0"
