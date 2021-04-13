@@ -297,7 +297,7 @@ fn any_with_args_expr_private_constructor() {
 }
 
 #[test]
-fn any_with_args_field() {
+fn any_with_args_struct_field() {
     #[derive(Default)]
     struct TestArgs {
         a_max: i32,
@@ -316,6 +316,32 @@ fn any_with_args_field() {
         inner: Inner,
     }
     assert_arbitrary((0..50).prop_map(|a| Outer { inner: Inner { a } }));
+}
+
+#[test]
+fn any_with_args_enum_field() {
+    #[derive(Default)]
+    struct TestArgs {
+        a_max: i32,
+    }
+
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    enum Inner {
+        A {
+            #[strategy(0..args.a_max)]
+            a: i32,
+        },
+    }
+
+    #[derive(Arbitrary, Debug, PartialEq)]
+    struct Outer {
+        #[any(a_max = 50)]
+        inner: Inner,
+    }
+    assert_arbitrary((0..50).prop_map(|a| Outer {
+        inner: Inner::A { a },
+    }));
 }
 
 #[test]
