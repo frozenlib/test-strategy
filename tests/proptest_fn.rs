@@ -15,6 +15,16 @@ fn param_x1(_x: u32) {}
 fn param_x2(_x: u32, _y: u32) {}
 
 #[proptest]
+fn param_mut(mut _x: u32) {
+    _x = 0;
+}
+#[proptest]
+fn param_mut_x2(mut _x: u32, mut _y: u32) {
+    _x = 0;
+    _y = 0;
+}
+
+#[proptest]
 fn with_strategy(#[strategy(2..10u32)] x: u32) {
     assert!(2 <= x);
     assert!(x < 10);

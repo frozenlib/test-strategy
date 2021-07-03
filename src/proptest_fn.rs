@@ -2,8 +2,8 @@ use crate::syn_utils::{Arg, Args};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{
-    parse2, parse_quote, parse_str, spanned::Spanned, Field, FnArg, Ident, ItemFn, Pat, Result,
-    Visibility,
+    parse2, parse_quote, parse_str, spanned::Spanned, token, Field, FnArg, Ident, ItemFn, Pat,
+    Result, Visibility,
 };
 
 pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStream> {
@@ -22,24 +22,23 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
     });
     let args_type_str = format!("_{}Args", to_camel_case(&item_fn.sig.ident.to_string()));
     let args_type_ident: Ident = parse_str(&args_type_str).unwrap();
-    let args_fields = item_fn
+    let args = item_fn
         .sig
         .inputs
         .iter()
-        .map(to_field)
+        .map(TestFnArg::from)
         .collect::<Result<Vec<_>>>()?;
-    let args_field_names = args_fields
-        .iter()
-        .map(|field| field.ident.as_ref().unwrap());
+    let args_pats = args.iter().map(|arg| arg.pat());
     let block = &item_fn.block;
     let block = quote! {
         {
-            let #args_type_ident { #(#args_field_names,)* } = input;
+            let #args_type_ident { #(#args_pats,)* } = input;
             #block
         }
     };
     item_fn.sig.inputs = parse_quote! { input: #args_type_ident };
     item_fn.block = Box::new(parse2(block)?);
+    let args_fields = args.iter().map(|arg| &arg.field);
     let config = to_proptest_config(attr_args);
     let ts = quote! {
         #[derive(test_strategy::Arbitrary, Debug)]
@@ -81,28 +80,41 @@ fn to_proptest_config(args: Option<Args>) -> TokenStream {
         quote! {}
     }
 }
-
-fn to_field(arg: &FnArg) -> Result<Field> {
-    if let FnArg::Typed(arg) = arg {
-        if let Pat::Ident(ident) = arg.pat.as_ref() {
-            if ident.attrs.is_empty() && ident.by_ref.is_none() && ident.subpat.is_none() {
-                return Ok(Field {
-                    attrs: arg.attrs.clone(),
-                    vis: Visibility::Inherited,
-                    ident: Some(ident.ident.clone()),
-                    colon_token: Some(arg.colon_token),
-                    ty: arg.ty.as_ref().clone(),
-                });
+struct TestFnArg {
+    field: Field,
+    mutability: Option<token::Mut>,
+}
+impl TestFnArg {
+    fn from(arg: &FnArg) -> Result<Self> {
+        if let FnArg::Typed(arg) = arg {
+            if let Pat::Ident(ident) = arg.pat.as_ref() {
+                if ident.attrs.is_empty() && ident.by_ref.is_none() && ident.subpat.is_none() {
+                    return Ok(Self {
+                        field: Field {
+                            attrs: arg.attrs.clone(),
+                            vis: Visibility::Inherited,
+                            ident: Some(ident.ident.clone()),
+                            colon_token: Some(arg.colon_token),
+                            ty: arg.ty.as_ref().clone(),
+                        },
+                        mutability: ident.mutability.clone(),
+                    });
+                }
+            } else {
+                bail!(arg.pat.span(), "argument pattern not supported.");
             }
-        } else {
-            bail!(arg.pat.span(), "argument pattern not supported.");
         }
+        bail!(
+            arg.span(),
+            "argument {} is not supported.",
+            arg.to_token_stream()
+        );
     }
-    bail!(
-        arg.span(),
-        "argument {} is not supported.",
-        arg.to_token_stream()
-    );
+    fn pat(&self) -> TokenStream {
+        let mutability = &self.mutability;
+        let ident = &self.field.ident;
+        quote!(#mutability #ident)
+    }
 }
 
 fn to_camel_case(s: &str) -> String {
