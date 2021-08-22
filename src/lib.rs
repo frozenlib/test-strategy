@@ -25,8 +25,8 @@
 //! 
 //! ```toml
 //! [dependencies]
-//! test-strategy = "0.1"
-//! proptest = "0.10"
+//! test-strategy = "0.1.2"
+//! proptest = "1.0.0"
 //! ```
 //! 
 //! ## Example
