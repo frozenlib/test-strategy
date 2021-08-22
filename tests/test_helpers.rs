@@ -17,8 +17,7 @@ pub fn assert_eq_strategy<T: Debug + PartialEq>(
     l: impl Strategy<Value = T>,
     r: impl Strategy<Value = T>,
 ) {
-    let mut ops = Vec::new();
-    ops.push(Op::Simplify);
+    let mut ops = vec![Op::Simplify];
     for _ in 0..100 {
         ops.push(Op::Simplify);
         ops.push(Op::Complicate);

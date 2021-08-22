@@ -220,7 +220,7 @@ impl FieldKey {
     }
     pub fn to_valid_ident(&self) -> Option<Ident> {
         match self {
-            Self::Named(name) => to_valid_ident(&name).ok(),
+            Self::Named(name) => to_valid_ident(name).ok(),
             Self::Unnamed(..) => None,
         }
     }
@@ -331,7 +331,7 @@ pub fn impl_trait_result(
 }
 
 pub fn to_valid_ident(s: &str) -> Result<Ident> {
-    if let Ok(ident) = parse_str(&s) {
+    if let Ok(ident) = parse_str(s) {
         Ok(ident)
     } else {
         parse_str(&format!("r#{}", s))

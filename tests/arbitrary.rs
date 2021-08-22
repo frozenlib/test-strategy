@@ -20,7 +20,7 @@ fn unit_struct() {
 fn tuple_struct_no_field() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct();
-    assert_arbitrary(LazyJust::new(|| TestStruct()));
+    assert_arbitrary(LazyJust::new(TestStruct));
 }
 #[test]
 fn struct_no_field() {
@@ -70,7 +70,7 @@ fn struct_field_raw_keyword_ident() {
 fn tuple_struct_no_attr_field() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct(u16);
-    assert_arbitrary(any::<u16>().prop_map(|x| TestStruct(x)));
+    assert_arbitrary(any::<u16>().prop_map(TestStruct));
 }
 #[test]
 fn tuple_struct_no_attr_field_x2() {
@@ -516,7 +516,7 @@ fn filter_tuple_struct_field_sharp_val() {
     assert_arbitrary(
         (1..10u32)
             .prop_filter("is_even", is_even)
-            .prop_map(|x| TestStruct(x)),
+            .prop_map(TestStruct),
     );
 }
 
@@ -924,8 +924,8 @@ fn auto_bound_tuple_struct() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct<T>(T);
 
-    assert_arbitrary(any::<u16>().prop_map(|x| TestStruct(x)));
-    assert_arbitrary(any::<u32>().prop_map(|x| TestStruct(x)));
+    assert_arbitrary(any::<u16>().prop_map(TestStruct));
+    assert_arbitrary(any::<u32>().prop_map(TestStruct));
 }
 
 #[test]
@@ -935,8 +935,8 @@ fn auto_bound_tuple_enum() {
         A(T),
     }
 
-    assert_arbitrary(any::<u16>().prop_map(|x| TestEnum::A(x)));
-    assert_arbitrary(any::<u32>().prop_map(|x| TestEnum::A(x)));
+    assert_arbitrary(any::<u16>().prop_map(TestEnum::A));
+    assert_arbitrary(any::<u32>().prop_map(TestEnum::A));
 }
 
 #[test]
@@ -944,8 +944,8 @@ fn auto_bound_any_attribute() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct<T>(#[any(std::default::Default::default())] T);
 
-    assert_arbitrary(any::<u16>().prop_map(|x| TestStruct(x)));
-    assert_arbitrary(any::<u32>().prop_map(|x| TestStruct(x)));
+    assert_arbitrary(any::<u16>().prop_map(TestStruct));
+    assert_arbitrary(any::<u32>().prop_map(TestStruct));
 }
 
 #[test]

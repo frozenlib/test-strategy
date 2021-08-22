@@ -470,12 +470,10 @@ impl StrategyBuilder {
         for (idx, field) in self.fields.iter().enumerate() {
             let args: ArbitraryArgsForFieldOrVariant = parse_from_attrs(&field.attrs, "arbitrary")?;
             let mut bounds = bounds.child(args.bound);
-            if bounds.can_extend {
-                if self.items[idx].is_any {
-                    let ty = &field.ty;
-                    if generics.contains_in_type(ty) {
-                        bounds.ty.push(ty.clone());
-                    }
+            if bounds.can_extend && self.items[idx].is_any {
+                let ty = &field.ty;
+                if generics.contains_in_type(ty) {
+                    bounds.ty.push(ty.clone());
                 }
             }
         }

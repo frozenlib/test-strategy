@@ -97,7 +97,7 @@ impl TestFnArg {
                             colon_token: Some(arg.colon_token),
                             ty: arg.ty.as_ref().clone(),
                         },
-                        mutability: ident.mutability.clone(),
+                        mutability: ident.mutability,
                     });
                 }
             } else {
