@@ -120,6 +120,18 @@
     },
     {
       "type": "shell",
+      "label": "cargo fix & fmt",
+      "command": "cargo fix && cargo fmt",
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true,
+      }
+    },
+    {
+      "type": "shell",
       "label": "cargo bench",
       "command": "cargo",
       "args": [
