@@ -166,7 +166,9 @@ impl AnyArgs {
             if self.setters.is_empty() {
                 quote!(proptest::arbitrary::any_with::<#ty>(#init))
             } else {
-                let setters = self.setters.into_iter().map(|(name, expr)| {
+                let mut setters: Vec<_> = self.setters.into_iter().collect();
+                setters.sort_by(|v0, v1| v0.0.cmp(&v1.0));
+                let setters = setters.into_iter().map(|(name, expr)| {
                     let member = Member::Named(to_valid_ident(&name).unwrap());
                     let expr = &expr.value;
                     quote!(_any_args.#member = #expr;)
