@@ -1,5 +1,4 @@
 // #![include_doc("../README.md", start("This crate provides two procedural macros, `#[derive(Arbitrary)]` and `#[proptest]`."))]
-
 //! This crate provides two procedural macros, `#[derive(Arbitrary)]` and `#[proptest]`.
 //!
 //! Each of these macros is an alternative to the following proptest's official macros.
@@ -523,7 +522,6 @@
 //!     // ...
 //! }
 //! ```
-
 // #![include_doc("../README.md", end("## License"))]
 
 extern crate proc_macro;
