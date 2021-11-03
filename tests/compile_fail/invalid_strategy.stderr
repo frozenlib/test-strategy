@@ -1,10 +1,14 @@
 error[E0271]: type mismatch resolving `<std::ops::Range<usize> as Strategy>::Value == u8`
  --> $DIR/invalid_strategy.rs:4:16
   |
-2 | #[derive(Arbitrary, Debug)]
-  |          --------- required by a bound in this
-3 | struct TestStruct {
 4 |     #[strategy(0..10usize)]
   |                ^ expected `u8`, found `usize`
+  |
+note: required by a bound in `_strategy_of_x`
+ --> $DIR/invalid_strategy.rs:5:8
+  |
+2 | #[derive(Arbitrary, Debug)]
+  |          --------- required by a bound in this
+...
 5 |     x: u8,
-  |        -- required by this bound in `_strategy_of_x`
+  |        ^^ required by this bound in `_strategy_of_x`

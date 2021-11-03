@@ -1,5 +1,5 @@
-error: unexpected token
- --> $DIR/weight_attr_more_arg.rs:4:15
+error: too many arguments.
+ --> $DIR/weight_attr_more_arg.rs:4:17
   |
 4 |     #[weight(1, 2)]
-  |               ^
+  |                 ^

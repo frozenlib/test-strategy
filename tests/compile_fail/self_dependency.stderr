@@ -4,4 +4,4 @@ error: found cyclic dependency. (x -> x)
 2 | #[derive(Arbitrary, Debug)]
   |          ^^^^^^^^^
   |
-  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: this error originates in the derive macro `Arbitrary` (in Nightly builds, run with -Z macro-backtrace for more info)
