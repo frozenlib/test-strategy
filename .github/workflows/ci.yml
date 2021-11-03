@@ -17,6 +17,8 @@ jobs:
         run: cargo test --verbose --no-run
       - name: Run tests
         run: cargo test --verbose
+      - name: Run compile fail tests
+        run: cargo test --test compile_fail --verbose -- --ignored
       - name: Clippy
         run: cargo clippy --all-features --tests --lib -- -W clippy::all
         env:
