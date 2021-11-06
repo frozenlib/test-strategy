@@ -9,7 +9,7 @@ documentation = "https://docs.rs/test-strategy/"
 keywords = ["macro", "testing", "proptest"]
 categories = ["development-tools::testing"]
 description = "Procedural macro to easily write higher-order strategies in proptest."
-edition = "2018"
+edition = "2021"
 
 
 [lib]
