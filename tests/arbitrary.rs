@@ -286,12 +286,14 @@ fn any_with_args_expr_private_constructor() {
     #[derive(Arbitrary, Debug)]
     #[arbitrary(args = sub_mod::TestArgsNoConstruct)]
     struct Inner {
+        #[allow(dead_code)]
         x: u32,
     }
 
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[any(sub_mod::TestArgsNoConstruct::new())]
+        #[allow(dead_code)]
         inner: Inner,
     }
 }

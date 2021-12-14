@@ -140,6 +140,7 @@ fn filter_field_expr() {
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[filter(#x % 2 == 0)]
+        #[allow(dead_code)]
         x: u32,
     }
 }
@@ -151,7 +152,9 @@ fn filter_struct_expr() {
     #[derive(Arbitrary, Debug)]
     #[filter((#x + #y) % 2 == 0)]
     struct TestInput {
+        #[allow(dead_code)]
         x: u32,
+        #[allow(dead_code)]
         y: u32,
     }
 }
@@ -175,6 +178,7 @@ fn filter_field_fn() {
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[filter(is_even)]
+        #[allow(dead_code)]
         x: u32,
     }
     fn is_even(x: &u32) -> bool {
@@ -203,6 +207,7 @@ fn filter_name() {
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[filter("filter name", #x % 2 == 0)]
+        #[allow(dead_code)]
         x: u32,
     }
 }
@@ -215,9 +220,11 @@ fn by_ref_strategy() {
     struct TestInput {
         #[by_ref]
         #[strategy(1..10u32)]
+        #[allow(dead_code)]
         x: u32,
 
         #[strategy(0..*#x)]
+        #[allow(dead_code)]
         y: u32,
     }
 }
@@ -235,6 +242,7 @@ fn arbitrary_args() {
     #[arbitrary(args = TestInputArgs)]
     struct TestInput {
         #[strategy(0..=args.x_max)]
+        #[allow(dead_code)]
         x: u32,
     }
 }
