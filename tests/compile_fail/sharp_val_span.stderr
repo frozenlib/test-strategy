@@ -1,5 +1,33 @@
 error[E0614]: type `u32` cannot be dereferenced
- --> $DIR/sharp_val_span.rs:8:19
+ --> tests/compile_fail/sharp_val_span.rs:8:19
   |
 8 |     #[strategy(0..*#x)]
   |                   ^^^
+
+error[E0283]: type annotations needed
+ --> tests/compile_fail/sharp_val_span.rs:8:16
+  |
+3 | #[derive(Arbitrary, Debug)]
+  |          --------- consider giving `_s` a type
+...
+8 |     #[strategy(0..*#x)]
+  |                ^ cannot infer type for struct `std::ops::Range<{integer}>`
+  |
+  = note: multiple `impl`s satisfying `std::ops::Range<{integer}>: Strategy` found in the `proptest` crate:
+          - impl Strategy for std::ops::Range<i128>;
+          - impl Strategy for std::ops::Range<i16>;
+          - impl Strategy for std::ops::Range<i32>;
+          - impl Strategy for std::ops::Range<i64>;
+          and 8 more
+note: required by a bound in `_strategy_of_y`
+ --> tests/compile_fail/sharp_val_span.rs:9:8
+  |
+3 | #[derive(Arbitrary, Debug)]
+  |          --------- required by a bound in this
+...
+9 |     y: u32,
+  |        ^^^ required by this bound in `_strategy_of_y`
+help: consider specifying the type arguments in the function call
+  |
+8 |     #[strategy(0::<T, S>..*#x)]
+  |                 ++++++++
