@@ -37,7 +37,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
         quote! {
             #type_parameters
             type Strategy = proptest::strategy::BoxedStrategy<Self>;
-            fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            fn arbitrary_with(args: <Self as proptest::arbitrary::Arbitrary>::Parameters) -> Self::Strategy {
                 #[allow(dead_code)]
                 fn _to_fn_ptr<T>(f: fn(&T) -> bool) -> fn(&T) -> bool {
                     f

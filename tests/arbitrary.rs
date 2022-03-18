@@ -1053,3 +1053,13 @@ fn manual_bound_variant() {
     }
     assert_arbitrary(any::<u16>().prop_map(|x| Outer::X(Inner(x))));
 }
+
+#[test]
+fn enum_with_variant_named_parameters() {
+    #[deny(warnings)]
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    enum MyEnum {
+        Parameters,
+        SomethingElse,
+    }
+}
