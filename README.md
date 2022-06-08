@@ -8,13 +8,15 @@ This crate provides two procedural macros, `#[derive(Arbitrary)]` and `#[proptes
 
 Each of these macros is an alternative to the following proptest's official macros.
 
-| test-strategy                              | [proptest][]     | [proptest-derive][]    |
-| ------------------------------------------ | ---------------- | ---------------------- |
-| [`#[derive(Arbitrary)]`](#derivearbitrary) |                  | `#[derive(Arbitrary)]` |
-| [`#[proptest]`](#proptest)                 | `proptest ! { }` |                        |
+| test-strategy                              | [proptest][]                  | [proptest-derive][]                 |
+| ------------------------------------------ | ----------------------------- | ----------------------------------- |
+| [`#[derive(Arbitrary)]`](#derivearbitrary) |                               | [`#[derive(Arbitrary)]`][offical-a] |
+| [`#[proptest]`](#proptest)                 | [`proptest ! { }`][offical-m] |                                     |
 
 [proptest]: https://crates.io/crates/proptest
 [proptest-derive]: https://crates.io/crates/proptest-derive
+[offical-m]: https://altsysrq.github.io/rustdoc/proptest/latest/proptest/macro.proptest.html
+[offical-a]: https://altsysrq.github.io/proptest-book/proptest-derive/modifiers.html
 
 The macros provided by this crate have the following advantages over the proptest's official macros.
 
