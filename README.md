@@ -1,6 +1,6 @@
 # test-strategy
 
-[![Crates.io](https://img.shields.io/crates/v/test-strategy.svg)](https://crates.io/crates/test-strategy)
+[![Crates.io](https://img.shields.io/crates/v/test-strategy.svg)][test-strategy]
 [![Docs.rs](https://docs.rs/test-strategy/badge.svg)](https://docs.rs/test-strategy/)
 [![Actions Status](https://github.com/frozenlib/test-strategy/workflows/CI/badge.svg)](https://github.com/frozenlib/test-strategy/actions)
 
@@ -8,11 +8,12 @@ This crate provides two procedural macros, `#[derive(Arbitrary)]` and `#[proptes
 
 Each of these macros is an alternative to the following proptest's official macros.
 
-| test-strategy                              | [proptest][]                  | [proptest-derive][]                 |
+| [test-strategy][]                          | [proptest][]                  | [proptest-derive][]                 |
 | ------------------------------------------ | ----------------------------- | ----------------------------------- |
 | [`#[derive(Arbitrary)]`](#derivearbitrary) |                               | [`#[derive(Arbitrary)]`][offical-a] |
 | [`#[proptest]`](#proptest)                 | [`proptest ! { }`][offical-m] |                                     |
 
+[test-strategy]: https://crates.io/crates/test-strategy
 [proptest]: https://crates.io/crates/proptest
 [proptest-derive]: https://crates.io/crates/proptest-derive
 [offical-m]: https://altsysrq.github.io/rustdoc/proptest/latest/proptest/macro.proptest.html
