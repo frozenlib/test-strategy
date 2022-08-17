@@ -7,9 +7,6 @@ error[E0614]: type `u32` cannot be dereferenced
 error[E0283]: type annotations needed
  --> tests/compile_fail/sharp_val_span.rs:8:16
   |
-3 | #[derive(Arbitrary, Debug)]
-  |          --------- consider giving `_s` a type
-...
 8 |     #[strategy(0..*#x)]
   |                ^ cannot infer type for struct `std::ops::Range<{integer}>`
   |
