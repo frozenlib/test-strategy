@@ -35,3 +35,9 @@ jobs:
         run: cargo +stable test --verbose --no-run
       - name: Run tests (minimal versions)
         run: cargo +stable test --verbose
+      - name: Clean
+        run: cargo clean
+      - name: Clippy nightly
+        run: cargo +nightly clippy --all-features --tests --lib -- -W clippy::all
+        env:
+          RUSTFLAGS: -D warnings
