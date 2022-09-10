@@ -269,6 +269,7 @@ impl Filter {
                 #[allow(dead_code)]
                 let args = std::clone::Clone::clone(&args);
                 proptest::strategy::Strategy::prop_filter(#ident, #whence, move |#field| {
+                    #[allow(unused_variables)]
                     let args = std::ops::Deref::deref(&args);
                     #let_clone
                     #fun
@@ -283,6 +284,7 @@ impl Filter {
                 #[allow(dead_code)]
                 let args = std::clone::Clone::clone(&args);
                 proptest::strategy::Strategy::prop_filter(#ident, #whence, move |_self| {
+                    #[allow(unused_variables)]
                     let args = std::ops::Deref::deref(&args);
                     #fun
                 })
