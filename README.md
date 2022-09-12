@@ -32,7 +32,7 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-test-strategy = "0.2.0"
+test-strategy = "0.2.1"
 proptest = "1.0.0"
 ```
 
