@@ -8,7 +8,7 @@ error[E0283]: type annotations needed
  --> tests/compile_fail/sharp_val_span.rs:8:16
   |
 8 |     #[strategy(0..*#x)]
-  |                ^ cannot infer type for struct `std::ops::Range<{integer}>`
+  |                ^ cannot infer type of the type parameter `S` declared on the function `_strategy_of_y`
   |
   = note: multiple `impl`s satisfying `std::ops::Range<{integer}>: Strategy` found in the `proptest` crate:
           - impl Strategy for std::ops::Range<i128>;
