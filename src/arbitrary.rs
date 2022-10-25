@@ -344,7 +344,7 @@ impl StrategyBuilder {
         let mut filters_fields = Vec::new();
         for (idx, field) in fields.iter().enumerate() {
             let key = FieldKey::from_field(idx, field);
-            let func_ident = format!("_strategy_of_{}", key);
+            let func_ident = format!("_strategy_of_{key}");
             let mut strategy = None;
             let mut filters_fn = Vec::new();
             let mut filters_field = Vec::new();

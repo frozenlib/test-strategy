@@ -216,7 +216,7 @@ impl FieldKey {
     }
 
     pub fn to_dummy_ident(&self) -> Ident {
-        Ident::new(&format!("_{}", self), Span::call_site())
+        Ident::new(&format!("_{self}"), Span::call_site())
     }
     pub fn to_valid_ident(&self) -> Option<Ident> {
         match self {
@@ -325,7 +325,7 @@ pub fn impl_trait_result(
 ) -> Result<TokenStream> {
     let ts = impl_trait(input, trait_path, wheres, contents);
     if dump {
-        panic!("macro result: \n{}", ts);
+        panic!("macro result: \n{ts}");
     }
     Ok(ts)
 }
@@ -334,7 +334,7 @@ pub fn to_valid_ident(s: &str) -> Result<Ident> {
     if let Ok(ident) = parse_str(s) {
         Ok(ident)
     } else {
-        parse_str(&format!("r#{}", s))
+        parse_str(&format!("r#{s}"))
     }
 }
 
