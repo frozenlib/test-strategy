@@ -28,7 +28,7 @@ jobs:
         env:
           RUSTFLAGS: -D warnings
       - name: Rustup toolchain install nightly
-        run: rustup toolchain install nightly
+        run: rustup toolchain install nightly -c clippy
       - name: Set minimal versions
         run: cargo +nightly update -Z minimal-versions
       - name: Build tests (minimal versions)
