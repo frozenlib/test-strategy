@@ -13,5 +13,5 @@ note: function defined here
  --> tests/compile_fail/invalid_filter_field.rs:2:10
   |
 2 | #[derive(Arbitrary, Debug, PartialEq)]
-  |          -^^^^^^^^
+  |          ^^^^^^^^^
   = note: this error originates in the derive macro `Arbitrary` (in Nightly builds, run with -Z macro-backtrace for more info)
