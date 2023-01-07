@@ -19,9 +19,8 @@ error[E0283]: type annotations needed
 note: required by a bound in `_strategy_of_y`
  --> tests/compile_fail/sharp_val_span.rs:9:8
   |
-3 | #[derive(Arbitrary, Debug)]
-  |          --------- required by a bound in this
-...
+8 |     #[strategy(0..*#x)]
+  |                - required by a bound in this
 9 |     y: u32,
   |        ^^^ required by this bound in `_strategy_of_y`
 help: consider specifying the type arguments in the function call

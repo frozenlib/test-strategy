@@ -81,6 +81,7 @@
 //! | [`#[strategy]`](#strategy)                          |          |        |      |         | ✔     | ✔                  |
 //! | [`#[any]`](#any)                                    |          |        |      |         | ✔     | ✔                  |
 //! | [`#[weight]`](#weight)                              |          |        |      | ✔       |       |                    |
+//! | [`#[map]`](#map)                                    |          |        |      |         | ✔     | ✔                  |
 //! | [`#[filter]`](#filter)                              | ✔        | ✔      | ✔    | ✔       | ✔     | ✔                  |
 //! | [`#[by_ref]`](#by_ref)                              |          |        |      |         | ✔     | ✔                  |
 //! | [`#[arbitrary(args = T)]`](#arbitraryargs--t)       |          | ✔      | ✔    |         |       |                    |
@@ -248,6 +249,10 @@
 //!     B(NotArbitrary),
 //! }
 //! ```
+//!
+//! ## `#[map]`
+//!
+//! TODO
 //!
 //! ## `#[filter]`
 //!
@@ -549,7 +554,7 @@ pub fn proptest(
 
 #[proc_macro_derive(
     Arbitrary,
-    attributes(arbitrary, strategy, any, filter, weight, by_ref)
+    attributes(arbitrary, strategy, any, map, filter, weight, by_ref)
 )]
 pub fn derive_arbitrary(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

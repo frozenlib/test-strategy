@@ -18,7 +18,7 @@ pub fn assert_eq_strategy<T: Debug + PartialEq>(
     r: impl Strategy<Value = T>,
 ) {
     let mut ops = vec![Op::Simplify];
-    for _ in 0..100 {
+    for _ in 0..1000 {
         ops.push(Op::Simplify);
         ops.push(Op::Complicate);
     }
@@ -36,11 +36,16 @@ fn assert_eq_strategy_ops<T: Debug + PartialEq>(
     let mut l_tree = l.new_tree(&mut l_runner).unwrap();
     let mut r_tree = r.new_tree(&mut r_runner).unwrap();
 
+    let mut step = 0;
     for op in ops {
-        assert_eq!(l_tree.current(), r_tree.current());
+        let l_value = l_tree.current();
+        let r_value = r_tree.current();
+        println!("{l_value:?} {r_value:?}");
+        assert_eq!(l_value, r_value, "value: {step}");
+        step += 1;
         match op {
-            Op::Simplify => assert_eq!(l_tree.simplify(), r_tree.simplify()),
-            Op::Complicate => assert_eq!(l_tree.complicate(), r_tree.complicate()),
+            Op::Simplify => assert_eq!(l_tree.simplify(), r_tree.simplify(), "step: {step}"),
+            Op::Complicate => assert_eq!(l_tree.complicate(), r_tree.complicate(), "step: {step}"),
         }
     }
 }

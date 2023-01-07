@@ -86,6 +86,7 @@ Helper attributes can be written in the following positions.
 | [`#[strategy]`](#strategy)                          |          |        |      |         | ✔     | ✔                  |
 | [`#[any]`](#any)                                    |          |        |      |         | ✔     | ✔                  |
 | [`#[weight]`](#weight)                              |          |        |      | ✔       |       |                    |
+| [`#[map]`](#map)                                    |          |        |      |         | ✔     | ✔                  |
 | [`#[filter]`](#filter)                              | ✔        | ✔      | ✔    | ✔       | ✔     | ✔                  |
 | [`#[by_ref]`](#by_ref)                              |          |        |      |         | ✔     | ✔                  |
 | [`#[arbitrary(args = T)]`](#arbitraryargs--t)       |          | ✔      | ✔    |         |       |                    |
@@ -253,6 +254,10 @@ enum TestInput {
     B(NotArbitrary),
 }
 ```
+
+## `#[map]`
+
+TODO
 
 ## `#[filter]`
 

@@ -2,16 +2,15 @@ error[E0271]: type mismatch resolving `<std::ops::Range<usize> as Strategy>::Val
  --> tests/compile_fail/invalid_strategy.rs:4:16
   |
 4 |     #[strategy(0..10usize)]
-  |                -^^^^^^^^^
+  |                ^---------
   |                |
   |                expected `u8`, found `usize`
-  |                required by a bound introduced by this call
+  |                this tail expression is of type `std::ops::Range<_>`
   |
 note: required by a bound in `_strategy_of_x`
  --> tests/compile_fail/invalid_strategy.rs:5:8
   |
-2 | #[derive(Arbitrary, Debug)]
-  |          --------- required by a bound in this
-...
+4 |     #[strategy(0..10usize)]
+  |                - required by a bound in this
 5 |     x: u8,
   |        ^^ required by this bound in `_strategy_of_x`

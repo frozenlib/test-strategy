@@ -1,7 +1,7 @@
 use proc_macro2::{Group, Spacing, Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     iter::once,
     ops::Deref,
 };
@@ -121,7 +121,7 @@ pub enum Arg {
 pub struct SharpVals {
     allow_vals: bool,
     allow_self: bool,
-    pub vals: HashMap<FieldKey, Span>,
+    pub vals: BTreeMap<FieldKey, Span>,
     pub self_span: Option<Span>,
 }
 impl SharpVals {
@@ -129,7 +129,7 @@ impl SharpVals {
         Self {
             allow_vals,
             allow_self,
-            vals: HashMap::new(),
+            vals: BTreeMap::new(),
             self_span: None,
         }
     }

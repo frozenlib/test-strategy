@@ -5,8 +5,10 @@ use crate::syn_utils::{
 use crate::{bound::*, syn_utils::parse_from_attrs};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
+use std::collections::BTreeMap;
 use std::{collections::HashMap, fmt::Write, mem::take};
 use structmeta::*;
+use syn::Pat;
 use syn::{
     parse2, parse_quote, parse_str, spanned::Spanned, Attribute, Data, DataEnum, DataStruct,
     DeriveInput, Expr, Fields, Ident, Index, Lit, Member, Path, Result, Type,
@@ -37,12 +39,37 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
         quote! {
             #type_parameters
             type Strategy = proptest::strategy::BoxedStrategy<Self>;
+            #[allow(clippy::redundant_closure_call)]
             fn arbitrary_with(args: <Self as proptest::arbitrary::Arbitrary>::Parameters) -> Self::Strategy {
                 #[allow(dead_code)]
                 fn _to_fn_ptr<T>(f: fn(&T) -> bool) -> fn(&T) -> bool {
                     f
                 }
-                let args = std::rc::Rc::new(args);
+                #[allow(dead_code)]
+                fn _map_to_any<T: proptest::arbitrary::Arbitrary, U, F: Fn(T) -> U>(
+                    _: impl Fn() -> F,
+                ) -> impl proptest::strategy::Strategy<Value = T> {
+                    proptest::arbitrary::any::<T>()
+                }
+
+                #[allow(dead_code)]
+                fn _map_to_any_with_init<T: proptest::arbitrary::Arbitrary, U, F: Fn(T) -> U>(
+                    _: impl Fn() -> F,
+                    p: <T as proptest::arbitrary::Arbitrary>::Parameters,
+                ) -> <T as proptest::arbitrary::Arbitrary>::Parameters {
+                    p
+                }
+
+                #[allow(dead_code)]
+                fn _map_to_any_with<T: proptest::arbitrary::Arbitrary, U, F: Fn(T) -> U>(
+                    _: impl Fn() -> F,
+                    args: <T as proptest::arbitrary::Arbitrary>::Parameters,
+                ) -> impl proptest::strategy::Strategy<Value = T> {
+                    proptest::arbitrary::any_with::<T>(args)
+                }
+
+                #[allow(unused_variables)]
+                let args_rc = std::rc::Rc::new(args);
                 proptest::strategy::Strategy::boxed(#expr)
             }
         },
@@ -156,15 +183,16 @@ impl AnyArgs {
             setters: HashMap::new(),
         }
     }
-    fn into_strategy(self, ty: &Type) -> TokenStream {
+    fn into_strategy(self, ty: &StrategyValueType) -> TokenStream {
         if self.initializer.is_none() && self.setters.is_empty() {
-            quote!(proptest::arbitrary::any::<#ty>())
+            ty.any()
         } else {
             let init = self
                 .initializer
-                .unwrap_or_else(|| parse_quote!(std::default::Default::default()));
+                .unwrap_or_else(|| parse_quote!(std::default::Default::default()))
+                .to_token_stream();
             if self.setters.is_empty() {
-                quote!(proptest::arbitrary::any_with::<#ty>(#init))
+                ty.any_with(init)
             } else {
                 let mut setters: Vec<_> = self.setters.into_iter().collect();
                 setters.sort_by(|v0, v1| v0.0.cmp(&v1.0));
@@ -173,11 +201,13 @@ impl AnyArgs {
                     let expr = &expr.value;
                     quote!(_any_args.#member = #expr;)
                 });
+                let any_with = ty.any_with(quote!(_any_args));
+                let any_with_args_let = ty.any_with_args_let(quote!(_any_args), init);
                 quote! {
                     {
-                        let mut _any_args : <#ty as proptest::arbitrary::Arbitrary>::Parameters = #init;
+                        #any_with_args_let;
                         #(#setters)*
-                        proptest::arbitrary::any_with::<#ty>(_any_args)
+                        #any_with
                     }
                 }
             }
@@ -197,9 +227,20 @@ struct ArbitraryArgsForFieldOrVariant {
     bound: Option<Vec<Bound>>,
 }
 
+#[derive(Clone)]
+enum FilterKind {
+    Unknown,
+    Func { ty: TokenStream },
+    Field { ident: Ident, by_ref: bool },
+    Fields,
+    UseSelf,
+}
+
+#[derive(Clone)]
 struct Filter {
     whence: Expr,
     fun: Expr,
+    kind: FilterKind,
 }
 impl Filter {
     fn parse(span: Span, args: Args) -> Result<Self> {
@@ -231,61 +272,79 @@ impl Filter {
                 "expected `#[filter(whence, fun)]` or `#[filter(fun)]`."
             ),
         }
-        Ok(Self { whence, fun })
+        Ok(Self {
+            whence,
+            fun,
+            kind: FilterKind::Unknown,
+        })
     }
-    fn from_enum_attrs_make_let(attrs: &[Attribute], ident: &Ident) -> Result<TokenStream> {
+    fn from_enum_attrs_make_let(attrs: &[Attribute], var: &Ident) -> Result<TokenStream> {
         let mut results = TokenStream::new();
         for attr in attrs {
             if attr.path.is_ident("filter") {
                 let mut sharp_vals = SharpVals::new(false, true);
                 let ts = sharp_vals.expand(attr.tokens.clone())?;
-                let filter = Filter::parse(attr.span(), parse2(ts)?)?;
+                let mut filter = Filter::parse(attr.span(), parse2(ts)?)?;
                 let code = if sharp_vals.self_span.is_some() {
-                    filter.make_let_self(ident)
+                    filter.kind = FilterKind::UseSelf;
+                    filter.make_let_self(var)
                 } else {
-                    let self_ty: Type = parse_quote!(Self);
-                    filter.make_let(&self_ty, ident)
+                    filter.kind = FilterKind::Func { ty: quote!(Self) };
+                    filter.make_let(var)
                 };
                 results.extend(code);
             }
         }
         Ok(results)
     }
-    fn make_let(&self, ty: &Type, ident: &Ident) -> TokenStream {
-        let Self { whence, fun } = self;
-        quote_spanned! {fun.span()=>
-            let #ident = proptest::strategy::Strategy::prop_filter(#ident, #whence, _to_fn_ptr::<#ty>(#fun));
+
+    fn make_let(&self, var: &Ident) -> TokenStream {
+        self.make_let_as(var, quote!(this))
+    }
+    fn make_let_member(&self, var: &Ident, member: &Member) -> TokenStream {
+        self.make_let_as(var, quote!(&this.#member))
+    }
+    fn make_let_as(&self, var: &Ident, target: TokenStream) -> TokenStream {
+        let whence = &self.whence;
+        let fun = &self.fun;
+        match &self.kind {
+            FilterKind::Unknown | FilterKind::Fields | FilterKind::UseSelf => unreachable!(),
+            FilterKind::Func { ty } => {
+                quote_spanned! {fun.span()=>
+                    let #var = proptest::strategy::Strategy::prop_filter(#var, #whence, |this| (_to_fn_ptr::<#ty>(#fun))(#target));
+                }
+            }
+            FilterKind::Field { ident, by_ref } => {
+                let let_clone = if *by_ref {
+                    quote! { let #ident = #target; }
+                } else {
+                    quote! { let #ident = std::clone::Clone::clone(#target); }
+                };
+                quote_spanned! {fun.span()=>
+                    let #var = {
+                        #[allow(unused_variables)]
+                        let args_rc = <std::rc::Rc<_> as std::clone::Clone>::clone(&args_rc);
+                        proptest::strategy::Strategy::prop_filter(#var, #whence, move |this| {
+                            #[allow(unused_variables)]
+                            let args = std::ops::Deref::deref(&args_rc);
+                            #let_clone
+                            #fun
+                        })
+                    };
+                }
+            }
         }
     }
-    fn make_let_field(&self, ident: &Ident, field: &Ident, by_ref: bool) -> TokenStream {
-        let Self { whence, fun } = self;
-        let let_clone = if by_ref {
-            quote! {}
-        } else {
-            quote! { let #field = std::clone::Clone::clone(#field); }
-        };
+
+    fn make_let_self(&self, var: &Ident) -> TokenStream {
+        let Self { whence, fun, .. } = self;
         quote_spanned! {fun.span()=>
-            let #ident = {
-                #[allow(dead_code)]
-                let args = std::clone::Clone::clone(&args);
-                proptest::strategy::Strategy::prop_filter(#ident, #whence, move |#field| {
+            let #var = {
+                #[allow(unused_variables)]
+                let args_rc = <std::rc::Rc<_> as std::clone::Clone>::clone(&args_rc);
+                proptest::strategy::Strategy::prop_filter(#var, #whence, move |_self| {
                     #[allow(unused_variables)]
-                    let args = std::ops::Deref::deref(&args);
-                    #let_clone
-                    #fun
-                })
-            };
-        }
-    }
-    fn make_let_self(&self, ident: &Ident) -> TokenStream {
-        let Self { whence, fun } = self;
-        quote_spanned! {fun.span()=>
-            let #ident = {
-                #[allow(dead_code)]
-                let args = std::clone::Clone::clone(&args);
-                proptest::strategy::Strategy::prop_filter(#ident, #whence, move |_self| {
-                    #[allow(unused_variables)]
-                    let args = std::ops::Deref::deref(&args);
+                    let args = std::ops::Deref::deref(&args_rc);
                     #fun
                 })
             };
@@ -308,7 +367,8 @@ struct StrategyItem {
     key: FieldKey,
     by_ref: bool,
     is_any: bool,
-    strategy: Expr,
+    is_field: bool,
+    expr: StrategyExpr,
     dependency: Vec<usize>,
 
     group: Option<usize>,
@@ -335,38 +395,108 @@ impl StrategyBuilder {
         attrs: &[Attribute],
         filter_allow_self: bool,
     ) -> Result<Self> {
-        let ts = TokenStream::new();
+        let mut ts = TokenStream::new();
+        let mut fs = Vec::new();
+        let mut by_refs = Vec::new();
         let mut key_to_idx = HashMap::new();
         for (idx, field) in fields.iter().enumerate() {
             key_to_idx.insert(FieldKey::from_field(idx, field), idx);
+            fs.push(field);
+            let mut by_ref = false;
+            for attr in &field.attrs {
+                if attr.path.is_ident("by_ref") {
+                    by_ref = true;
+                }
+            }
+            by_refs.push(by_ref);
         }
-        let mut items = Vec::new();
+        let mut items_field = Vec::new();
+        let mut items_other = Vec::new();
         let mut filters_fields = Vec::new();
+
         for (idx, field) in fields.iter().enumerate() {
             let key = FieldKey::from_field(idx, field);
-            let func_ident = format!("_strategy_of_{key}");
-            let mut strategy = None;
-            let mut filters_fn = Vec::new();
+            let mut expr_strategy = None::<StrategyExpr>;
+            let mut expr_map = None::<StrategyExpr>;
             let mut filters_field = Vec::new();
-            let mut sharp_vals = SharpVals::new(true, false);
+            let mut sharp_vals_strategy = SharpVals::new(true, false);
+            let mut sharp_vals_map = SharpVals::new(true, false);
             let mut by_ref = false;
             let mut is_any = false;
+            let mut strategy_value_ty = StrategyValueType::Type(field.ty.clone());
+            for attr in &field.attrs {
+                if attr.path.is_ident("map") {
+                    if expr_map.is_some() {
+                        bail!(attr.span(), "`#[map]` can be specified only once.");
+                    }
+                    let args = sharp_vals_map.expand(attr.tokens.clone())?;
+                    let args = parse_parenthesized_args(args)?;
+                    let expr = args.expect_single_value(attr.span())?;
+                    let ty = &field.ty;
+                    let input = key.to_dummy_ident();
+                    expr_map = Some(StrategyExpr::new(
+                        quote_spanned!(expr.span()=> #ty),
+                        quote_spanned!(expr.span()=> (#expr)(#input)),
+                        true,
+                    ));
+                    if let Some(ty) = input_type(expr) {
+                        strategy_value_ty = StrategyValueType::Type(ty.clone());
+                    } else {
+                        let dependency_map = to_idxs(&sharp_vals_map.vals, &key_to_idx)?;
+                        let mut lets = Vec::new();
+                        for idx in dependency_map {
+                            let field = &fs[idx];
+                            let key = FieldKey::from_field(idx, field);
+                            let ident = key.to_dummy_ident();
+                            let ty = &field.ty;
+                            let ty = if by_refs[idx] {
+                                quote!(&#ty)
+                            } else {
+                                quote!(#ty)
+                            };
+                            lets.push(quote!(let #ident : #ty = unreachable!();))
+                        }
+                        strategy_value_ty = StrategyValueType::Map(quote! { || {
+                            #[allow(clippy::diverging_sub_expression)]
+                            #[allow(unreachable_code)]
+                            {
+                                #(#lets)*
+                                #expr
+                            }
+                        }});
+                    }
+                }
+            }
             for attr in &field.attrs {
                 let is_strategy_attr = attr.path.is_ident("strategy");
                 let is_any_attr = attr.path.is_ident("any");
-                if strategy.is_some() && (is_strategy_attr || is_any_attr) {
+                if expr_strategy.is_some() && (is_strategy_attr || is_any_attr) {
                     bail!(
                         attr.span(),
                         "`#[any]` and `#[strategy]` can only be specified once in total."
                     );
                 }
                 if is_strategy_attr {
-                    let ts = sharp_vals.expand(attr.tokens.clone())?;
-                    let args = parse_parenthesized_args(ts)?;
-                    let value = args.expect_single_value(attr.span())?;
-                    let func_ident = Ident::new(&func_ident, value.span());
-                    let ty = &field.ty;
-                    strategy = Some(quote_spanned!(value.span()=> #func_ident::<#ty, _>(#value)));
+                    let args = sharp_vals_strategy.expand(attr.tokens.clone())?;
+                    let args = parse_parenthesized_args(args)?;
+                    let expr = args.expect_single_value(attr.span())?;
+                    let ty = strategy_value_ty.get();
+                    let func_ident = Ident::new(&format!("_strategy_of_{key}"), expr.span());
+                    ts.extend(quote_spanned! {ty.span()=>
+                        #[allow(dead_code)]
+                        #[allow(non_snake_case)]
+                        fn #func_ident<T: std::fmt::Debug, S: proptest::strategy::Strategy<Value = T>>(s: S) -> impl proptest::strategy::Strategy<Value = T> { s }
+                    });
+                    expr_strategy = Some(StrategyExpr::new(
+                        quote!(_),
+                        quote_spanned!(expr.span()=> #func_ident::<#ty, _>(
+                        {
+                            #[allow(unused_variables)]
+                            let args = std::ops::Deref::deref(&args_rc);
+                            #expr
+                        })),
+                        false,
+                    ));
                 }
                 if is_any_attr {
                     is_any = true;
@@ -374,10 +504,14 @@ impl StrategyBuilder {
                         AnyArgs::empty()
                     } else {
                         let ts: TokenStream = attr.parse_args()?;
-                        let ts = sharp_vals.expand(ts)?;
+                        let ts = sharp_vals_strategy.expand(ts)?;
                         parse2(ts)?
                     };
-                    strategy = Some(any_attr.into_strategy(&field.ty));
+                    expr_strategy = Some(StrategyExpr::new(
+                        quote!(),
+                        any_attr.into_strategy(&strategy_value_ty),
+                        false,
+                    ));
                 }
                 if attr.path.is_ident("by_ref") {
                     if !attr.tokens.is_empty() {
@@ -388,14 +522,22 @@ impl StrategyBuilder {
                     }
                     by_ref = true;
                 }
+            }
+            for attr in &field.attrs {
                 if attr.path.is_ident("filter") {
                     let mut sharp_vals = SharpVals::new(true, false);
                     let ts = sharp_vals.expand(attr.tokens.clone())?;
-                    let filter = Filter::parse(attr.span(), parse_parenthesized_args(ts)?)?;
+                    let mut filter = Filter::parse(attr.span(), parse_parenthesized_args(ts)?)?;
+                    let ty = &field.ty;
                     if sharp_vals.vals.is_empty() {
-                        filters_fn.push(filter);
+                        filter.kind = FilterKind::Func { ty: quote!(#ty) };
+                        filters_field.push(filter);
                     } else if sharp_vals.vals.contains_key(&key) {
                         if sharp_vals.vals.len() == 1 {
+                            filter.kind = FilterKind::Field {
+                                ident: key.to_dummy_ident(),
+                                by_ref,
+                            };
                             filters_field.push(filter);
                         } else {
                             let vals = to_idxs(&sharp_vals.vals, &key_to_idx)?;
@@ -406,38 +548,53 @@ impl StrategyBuilder {
                     }
                 }
             }
-            let s: Ident = parse_quote! { _s };
-            let ty = &field.ty;
-            let strategy = if let Some(strategy) = strategy {
-                strategy
+            let mut expr_strategy = if let Some(expr_strategy) = expr_strategy {
+                expr_strategy
             } else {
                 is_any = true;
-                AnyArgs::empty().into_strategy(ty)
+                let ty = strategy_value_ty.get();
+                StrategyExpr::new(
+                    quote!(#ty),
+                    AnyArgs::empty().into_strategy(&strategy_value_ty),
+                    false,
+                )
             };
-            let mut filter_lets = Vec::new();
-            for filter in filters_field {
-                filter_lets.push(filter.make_let_field(&s, &key.to_dummy_ident(), by_ref));
+            let dependency_strategy = to_idxs(&sharp_vals_strategy.vals, &key_to_idx)?;
+            if let Some(mut expr_map) = expr_map {
+                let idx_other = fields.len() + items_other.len();
+                let mut dependency_map = to_idxs(&sharp_vals_map.vals, &key_to_idx)?;
+                dependency_map.push(idx_other);
+                expr_map.filters = filters_field;
+                items_field.push(StrategyItem::new(
+                    idx,
+                    key.clone(),
+                    by_ref,
+                    false,
+                    true,
+                    expr_map,
+                    dependency_map,
+                ));
+                items_other.push(StrategyItem::new(
+                    idx_other,
+                    key,
+                    false,
+                    false,
+                    false,
+                    expr_strategy,
+                    dependency_strategy,
+                ));
+            } else {
+                expr_strategy.filters = filters_field;
+                items_field.push(StrategyItem::new(
+                    idx,
+                    key,
+                    by_ref,
+                    is_any,
+                    true,
+                    expr_strategy,
+                    dependency_strategy,
+                ));
             }
-            for filter in filters_fn {
-                filter_lets.push(filter.make_let(ty, &s));
-            }
-            let func_ident = Ident::new(&func_ident, Span::call_site());
-            let func = quote_spanned! {ty.span()=>
-                #[allow(dead_code)]
-                fn #func_ident<T: std::fmt::Debug, S: proptest::strategy::Strategy<Value = T>>(s: S) -> impl proptest::strategy::Strategy<Value = T> { s }
-            };
-            let strategy = parse_quote! {
-                {
-                    #func
-                    let #s = #strategy;
-                    #(#filter_lets)*
-                    #s
-                }
-            };
-            let dependency = to_idxs(&sharp_vals.vals, &key_to_idx)?;
-            items.push(StrategyItem::new(
-                idx, key, by_ref, is_any, strategy, dependency,
-            ));
         }
         let mut filters_fn = Vec::new();
         let mut filters_self = Vec::new();
@@ -445,21 +602,25 @@ impl StrategyBuilder {
             if attr.path.is_ident("filter") {
                 let mut sharp_vals = SharpVals::new(true, filter_allow_self);
                 let ts = sharp_vals.expand(attr.tokens.clone())?;
-                let filter = Filter::parse(attr.span(), parse2(ts)?)?;
+                let mut filter = Filter::parse(attr.span(), parse2(ts)?)?;
                 if !sharp_vals.vals.is_empty() {
+                    filter.kind = FilterKind::Fields;
                     let vals = to_idxs(&sharp_vals.vals, &key_to_idx)?;
                     filters_fields.push(FilterItem { filter, vals });
                 } else if sharp_vals.self_span.is_some() {
+                    filter.kind = FilterKind::UseSelf;
                     filters_self.push(filter);
                 } else {
+                    filter.kind = FilterKind::Func { ty: quote!(Self) };
                     filters_fn.push(filter);
                 }
             }
         }
         let fields = fields.clone();
+        items_field.extend(items_other);
         Ok(Self {
             ts,
-            items,
+            items: items_field,
             self_path,
             fields,
             filters_fields,
@@ -496,16 +657,25 @@ impl StrategyBuilder {
                 let mut cd_str = String::new();
                 let cd_idxs = self.get_cyclic_dependency().unwrap();
                 for &cd_idx in &cd_idxs {
-                    write!(&mut cd_str, "{} -> ", &self.items[cd_idx].key).unwrap();
+                    let item = &self.items[cd_idx];
+                    if item.is_field {
+                        write!(&mut cd_str, "{} -> ", &item.key).unwrap();
+                    }
                 }
-                write!(&mut cd_str, "{}", &self.items[cd_idxs[0]].key).unwrap();
+                for &cd_idx in &cd_idxs {
+                    let item = &self.items[cd_idx];
+                    if item.is_field {
+                        write!(&mut cd_str, "{}", &item.key).unwrap();
+                        break;
+                    }
+                }
                 bail!(Span::call_site(), "found cyclic dependency. ({0})", cd_str);
             }
         }
         self.merge_all_groups();
         let s = &self.items[0].strategy_ident();
         for filter in &self.filters_fields {
-            let Filter { whence, fun } = &filter.filter;
+            let Filter { whence, fun, .. } = &filter.filter;
             let mut lets = Vec::new();
             for &field in &filter.vals {
                 lets.push(self.items[field].let_sharp_val());
@@ -513,10 +683,11 @@ impl StrategyBuilder {
             lets.push(quote!(let args = std::clone::Clone::clone(&args);));
             self.ts.extend(quote! {
                 let #s = {
-                    #[allow(dead_code)]
-                    let args = std::clone::Clone::clone(&args);
+                    #[allow(unused_variables)]
+                    let args_rc = <std::rc::Rc<_> as std::clone::Clone>::clone(&args_rc);
                     proptest::strategy::Strategy::prop_filter(#s, #whence, move |_values| {
-                        let args = std::ops::Deref::deref(&args);
+                        #[allow(unused_variables)]
+                        let args = std::ops::Deref::deref(&args_rc);
                         #(#lets)*
                         #fun
                     })
@@ -525,7 +696,7 @@ impl StrategyBuilder {
         }
 
         let mut args = Vec::new();
-        for idx in 0..self.items.len() {
+        for idx in 0..self.fields.len() {
             let key = self.items[idx]
                 .key
                 .to_valid_ident()
@@ -540,9 +711,8 @@ impl StrategyBuilder {
         for filter in &self.filters_self {
             self.ts.extend(filter.make_let_self(s));
         }
-        let ty = parse_quote!(Self);
         for filter in &self.filters_fn {
-            self.ts.extend(filter.make_let(&ty, s));
+            self.ts.extend(filter.make_let(s));
         }
         self.ts.extend(quote!(#s));
         let ts = self.ts;
@@ -597,11 +767,41 @@ impl StrategyBuilder {
                     exprs.push(self.strategy_expr(group_item_next));
                 }
                 let ident = self.items[idx].strategy_ident();
+                let exprs = if exprs.iter().all(|e| e.is_jast) {
+                    let var = Ident::new("_s", Span::call_site());
+                    let mut lets = Vec::new();
+                    for (index, expr) in exprs.iter().enumerate() {
+                        let member = Member::Unnamed(index.into());
+                        for filter in &expr.filters {
+                            lets.push(filter.make_let_member(&var, &member));
+                        }
+                    }
+                    let exprs = exprs.iter().map(|e| &e.expr);
+                    quote! {
+                        {
+                            let #var = {
+                                #[allow(unused_variables)]
+                                let args_rc = <std::rc::Rc<_> as std::clone::Clone>::clone(&args_rc);
+                                proptest::strategy::Strategy::prop_map((#(#inputs, )*), move |_values| {
+                                    #[allow(unused_variables)]
+                                    let args = std::ops::Deref::deref(&args_rc);
+                                    (#(#exprs,)*)
+                                })
+                            };
+                            #(#lets)*
+                            #var
+                        }
+                    }
+                } else {
+                    quote!(proptest::strategy::Strategy::prop_flat_map((#(#inputs, )*), move |_values| (#(#exprs,)*)))
+                };
                 self.ts.extend(quote! {
                     let #ident = {
-                        #[allow(dead_code)]
-                        let args = std::clone::Clone::clone(&args);
-                        proptest::strategy::Strategy::prop_flat_map((#(#inputs, )*), move |_values| (#(#exprs,)*))
+                        #[allow(unused_variables)]
+                        let args_rc = <std::rc::Rc<_> as std::clone::Clone>::clone(&args_rc);
+                        #[allow(unused_variables)]
+                        let args = std::ops::Deref::deref(&args_rc);
+                        #exprs
                     };
                 });
             }
@@ -690,10 +890,10 @@ impl StrategyBuilder {
             self.items[group_next].group_items_next.push(idx);
         }
     }
-    fn strategy_expr(&self, idx: usize) -> TokenStream {
+    fn strategy_expr(&self, idx: usize) -> StrategyExpr {
         if self.is_exists(idx) {
             let member = self.member(idx);
-            quote!(proptest::strategy::Just(_values.#member))
+            StrategyExpr::new(quote!(_), quote!(_values.#member), true)
         } else {
             let item_ref = &self.items[idx];
             let mut lets = Vec::new();
@@ -709,15 +909,20 @@ impl StrategyBuilder {
                 lets.push(quote!(let #ident = #expr; ))
             }
             lets.push(quote! {
-                #[allow(dead_code)]
-                let args = std::ops::Deref::deref(&args);
+                #[allow(unused_variables)]
+                let args = std::ops::Deref::deref(&args_rc);
             });
-            let expr = &item_ref.strategy;
-            quote! {
-                {
-                    #(#lets)*
-                    #expr
-                }
+            let expr = &item_ref.expr.expr;
+            StrategyExpr {
+                expr: quote! {
+                    {
+                        #(#lets)*
+                        #expr
+                    }
+                },
+                filters: item_ref.expr.filters.clone(),
+                ty: item_ref.expr.ty.clone(),
+                is_jast: item_ref.expr.is_jast,
             }
         }
     }
@@ -780,7 +985,8 @@ impl StrategyItem {
         key: FieldKey,
         by_ref: bool,
         is_any: bool,
-        strategy: Expr,
+        is_field: bool,
+        expr: StrategyExpr,
         dependency: Vec<usize>,
     ) -> Self {
         Self {
@@ -788,7 +994,8 @@ impl StrategyItem {
             key,
             by_ref,
             is_any,
-            strategy,
+            is_field,
+            expr,
             dependency,
             group: None,
             group_next: None,
@@ -803,7 +1010,7 @@ impl StrategyItem {
     fn try_create_independent_strategy(&mut self, ts: &mut TokenStream) -> bool {
         if self.group.is_none() && self.dependency.is_empty() {
             let ident = self.strategy_ident();
-            let expr = &self.strategy;
+            let expr = &self.expr;
             ts.extend(quote!(let #ident = (#expr,);));
             self.group = Some(self.idx);
             self.group_next = self.group;
@@ -835,6 +1042,85 @@ impl StrategyItem {
     }
 }
 
+enum StrategyValueType {
+    Type(Type),
+    Map(TokenStream),
+}
+impl StrategyValueType {
+    fn get(&self) -> Type {
+        match self {
+            StrategyValueType::Type(ty) => ty.clone(),
+            StrategyValueType::Map(_) => parse_quote!(_),
+        }
+    }
+    fn any(&self) -> TokenStream {
+        match self {
+            StrategyValueType::Type(ty) => quote!(proptest::arbitrary::any::<#ty>()),
+            StrategyValueType::Map(expr) => quote!(_map_to_any(#expr)),
+        }
+    }
+    fn any_with_args_let(&self, var: TokenStream, init: TokenStream) -> TokenStream {
+        match self {
+            StrategyValueType::Type(ty) => {
+                quote!(let mut #var :<#ty as proptest::arbitrary::Arbitrary>::Parameters = #init;)
+            }
+            StrategyValueType::Map(expr) => {
+                quote!(let mut #var = _map_to_any_with_init(#expr, #init);)
+            }
+        }
+    }
+    fn any_with(&self, args: TokenStream) -> TokenStream {
+        match self {
+            StrategyValueType::Type(ty) => quote!(proptest::arbitrary::any_with::<#ty>(#args)),
+            StrategyValueType::Map(expr) => quote!(_map_to_any_with(#expr, #args)),
+        }
+    }
+}
+struct StrategyExpr {
+    expr: TokenStream,
+    filters: Vec<Filter>,
+    ty: TokenStream,
+    is_jast: bool,
+}
+impl StrategyExpr {
+    fn new(ty: TokenStream, expr: TokenStream, is_jast: bool) -> Self {
+        Self {
+            ty,
+            expr,
+            is_jast,
+            filters: Vec::new(),
+        }
+    }
+}
+impl ToTokens for StrategyExpr {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let expr = &self.expr;
+        let expr = if self.is_jast {
+            let ty = &self.ty;
+            quote!(proptest::strategy::Just::<#ty>(#expr))
+        } else {
+            quote!(#expr)
+        };
+        let expr = if self.filters.is_empty() {
+            expr
+        } else {
+            let mut filter_lets = Vec::new();
+            let var: Ident = parse_quote! { _s };
+            for filter in &self.filters {
+                filter_lets.push(filter.make_let(&var));
+            }
+            quote! {
+                {
+                    let #var = #expr;
+                    #(#filter_lets)*
+                    #var
+                }
+            }
+        };
+        tokens.extend(expr);
+    }
+}
+
 fn idx_to_member(idx: usize) -> Member {
     let index = idx as u32;
     Member::Unnamed(Index {
@@ -853,7 +1139,7 @@ fn build_constructor(path: &Path, fields: &Fields, args: TokenStream) -> TokenSt
 }
 
 fn to_idxs(
-    vals: &HashMap<FieldKey, Span>,
+    vals: &BTreeMap<FieldKey, Span>,
     key_to_idx: &HashMap<FieldKey, usize>,
 ) -> Result<Vec<usize>> {
     let mut idxs = Vec::new();
@@ -866,4 +1152,16 @@ fn to_idxs(
     }
     idxs.sort_unstable();
     Ok(idxs)
+}
+
+fn input_type(expr: &Expr) -> Option<&Type> {
+    if let Expr::Closure(closure) = expr {
+        let inputs = &closure.inputs;
+        if inputs.len() == 1 {
+            if let Pat::Type(t) = &inputs[0] {
+                return Some(&t.ty);
+            }
+        }
+    }
+    None
 }

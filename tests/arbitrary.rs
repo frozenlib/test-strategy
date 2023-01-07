@@ -139,6 +139,15 @@ fn strategy_rank3() {
 }
 
 #[test]
+fn strategy_underline() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    struct TestStruct {
+        #[strategy(1..16u16)]
+        _x: u16,
+    }
+}
+
+#[test]
 fn strategy_rev() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct {
@@ -1063,4 +1072,248 @@ fn enum_with_variant_named_parameters() {
         Parameters,
         SomethingElse,
     }
+}
+
+#[test]
+fn map() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[map(|x: u32| x + 1)]
+        x: u32,
+    }
+
+    assert_arbitrary(any::<u32>().prop_map(|x| X { x: x + 1 }));
+}
+
+#[test]
+fn map_dependency() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        a: u32,
+        #[map(|x: u32| x ^ #a)]
+        b: u32,
+    }
+
+    assert_arbitrary((any::<u32>(), any::<u32>()).prop_map(|x| X {
+        a: x.0,
+        b: x.0 ^ x.1,
+    }));
+}
+
+#[test]
+fn map_dependency_by_ref() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[by_ref]
+        a: u32,
+        #[map(|x: u32| x ^ *#a)]
+        b: u32,
+    }
+
+    assert_arbitrary((any::<u32>(), any::<u32>()).prop_map(|x| X {
+        a: x.0,
+        b: x.0 ^ x.1,
+    }));
+}
+
+#[test]
+fn map_filter() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[map(|x: u32| x + 1)]
+        #[filter(#x % 2 == 0)]
+        x: u32,
+    }
+
+    assert_arbitrary(
+        any::<u32>()
+            .prop_map(|x| x + 1)
+            .prop_filter("", |x| x % 2 == 0)
+            .prop_map(|x| X { x }),
+    );
+}
+
+#[test]
+fn map_strategy() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[strategy(1..10u32)]
+        #[map(|x: u32| x * 2)]
+        x: u32,
+    }
+
+    assert_arbitrary((1..10u32).prop_map(|x| X { x: x * 2 }));
+}
+
+#[test]
+fn map_strategy_infer() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[strategy(1..10u32)]
+        #[map(|x| x * 2)]
+        x: u32,
+    }
+
+    assert_arbitrary((1..10u32).prop_map(|x| X { x: x * 2 }));
+}
+
+#[test]
+fn map_strategy_any() {
+    fn x2(x: u32) -> u32 {
+        x * 2
+    }
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[map(x2)]
+        x: u32,
+    }
+    assert_arbitrary((any::<u32>()).prop_map(|x| X { x: x * 2 }));
+}
+
+#[test]
+fn map_strategy_any_with() {
+    fn x2(x: A) -> u32 {
+        x.0 * 2
+    }
+
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    #[arbitrary(args = u32)]
+    struct A(#[strategy(0..*args)] u32);
+
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[any(10)]
+        #[map(x2)]
+        x: u32,
+    }
+    assert_arbitrary((0..10u32).prop_map(|x| X { x: x * 2 }));
+}
+
+#[test]
+fn map_strategy_any_with_setter() {
+    fn x2(x: A) -> u32 {
+        x.0 * 2
+    }
+
+    #[derive(Default)]
+    struct Arg {
+        val: u32,
+    }
+
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    #[arbitrary(args = Arg)]
+    struct A(#[strategy(0..args.val)] u32);
+
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[any(val = 10)]
+        #[map(x2)]
+        x: u32,
+    }
+    assert_arbitrary((0..10u32).prop_map(|x| X { x: x * 2 }));
+}
+
+#[test]
+fn map_strategy_any_dependency() {
+    fn xor(arg: u32) -> impl Fn(u32) -> u32 {
+        move |x| x ^ arg
+    }
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        a: u32,
+        #[map(xor(#a))]
+        b: u32,
+    }
+    assert_arbitrary((any::<u32>(), any::<u32>()).prop_map(|x| X {
+        a: x.0,
+        b: x.0 ^ x.1,
+    }));
+}
+
+#[test]
+fn map_strategy_any_dependency_by_ref() {
+    fn xor(arg: u32) -> impl Fn(u32) -> u32 {
+        move |x| x ^ arg
+    }
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[by_ref]
+        a: u32,
+        #[map(xor(*#a))]
+        b: u32,
+    }
+    assert_arbitrary((any::<u32>(), any::<u32>()).prop_map(|x| X {
+        a: x.0,
+        b: x.0 ^ x.1,
+    }));
+}
+
+#[test]
+fn depend_on_map() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[strategy(0..5u32)]
+        #[map(|x: u32| x + 5)]
+        a: u32,
+
+        #[strategy(0..#a)]
+        b: u32,
+    }
+
+    assert_arbitrary(
+        (0..5u32)
+            .prop_flat_map(|x| (Just(x + 5), 0..x + 5))
+            .prop_map(|x| X { a: x.0, b: x.1 }),
+    );
+}
+
+#[test]
+fn index() {
+    use proptest::sample::Index;
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[strategy(1..20usize)]
+        a: usize,
+        #[map(|i: Index| i.index(#a))]
+        b: usize,
+    }
+
+    assert_arbitrary((1..20usize, any::<Index>()).prop_map(|x| X {
+        a: x.0,
+        b: x.1.index(x.0),
+    }));
+}
+
+#[test]
+fn filter_with_strategy_and_map() {
+    use proptest::sample::Index;
+
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[strategy(10..100usize)]
+        a: usize,
+
+        #[strategy(0..#a)]
+        x: usize,
+
+        #[map(|i: Index|i.index(#a))]
+        #[filter(#y % 2 == 0)]
+        y: usize,
+    }
+
+    let s = (10..100usize, any::<Index>()).prop_flat_map(|x| {
+        (
+            0..x.0,
+            Just(x.1.index(x.0)).prop_filter("", |y| y % 2 == 0),
+            Just(x.0),
+            Just(x.1),
+        )
+    });
+    let s = (s,).prop_map(|(x,)| (x.2, x.0, x.1, x.3)).prop_map(|x| X {
+        a: x.0,
+        x: x.1,
+        y: x.2,
+    });
+
+    assert_arbitrary(s);
 }
