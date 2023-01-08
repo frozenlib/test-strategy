@@ -1,0 +1,5 @@
+error: Filters that reference `self` in the variant (filters with no reference to the field) cannot be set.
+ --> tests/compile_fail/variant_filter_has_no_fields.rs:4:13
+  |
+4 |     #[filter(Self::is_match)]
+  |             ^^^^^^^^^^^^^^^^

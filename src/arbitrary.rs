@@ -606,9 +606,11 @@ impl StrategyBuilder {
                 if !sharp_vals.vals.is_empty() {
                     let vals = to_idxs(&sharp_vals.vals, &key_to_idx)?;
                     filters_fields.push(FieldsFilter { filter, vals });
-                } else {
+                } else if filter_allow_self {
                     let has_self = sharp_vals.self_span.is_some();
                     filters_self.push(SelfFilter { filter, has_self });
+                } else {
+                    bail!(attr.tokens.span(), "Filters that reference `self` in the variant (filters with no reference to the field) cannot be set.")
                 }
             }
         }
