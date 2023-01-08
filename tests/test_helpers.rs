@@ -40,7 +40,6 @@ fn assert_eq_strategy_ops<T: Debug + PartialEq>(
     for op in ops {
         let l_value = l_tree.current();
         let r_value = r_tree.current();
-        println!("{l_value:?} {r_value:?}");
         assert_eq!(l_value, r_value, "value: {step}");
         step += 1;
         match op {
