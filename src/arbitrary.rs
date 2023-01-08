@@ -228,19 +228,9 @@ struct ArbitraryArgsForFieldOrVariant {
 }
 
 #[derive(Clone)]
-enum FilterKind {
-    Unknown,
-    Func { ty: TokenStream },
-    Field { ident: Ident, by_ref: bool },
-    Fields,
-    UseSelf,
-}
-
-#[derive(Clone)]
 struct Filter {
     whence: Expr,
     fun: Expr,
-    kind: FilterKind,
 }
 impl Filter {
     fn parse(span: Span, args: Args) -> Result<Self> {
@@ -272,11 +262,7 @@ impl Filter {
                 "expected `#[filter(whence, fun)]` or `#[filter(fun)]`."
             ),
         }
-        Ok(Self {
-            whence,
-            fun,
-            kind: FilterKind::Unknown,
-        })
+        Ok(Self { whence, fun })
     }
     fn from_enum_attrs_make_let(attrs: &[Attribute], var: &Ident) -> Result<TokenStream> {
         let mut results = TokenStream::new();
@@ -284,70 +270,90 @@ impl Filter {
             if attr.path.is_ident("filter") {
                 let mut sharp_vals = SharpVals::new(false, true);
                 let ts = sharp_vals.expand(attr.tokens.clone())?;
-                let mut filter = Filter::parse(attr.span(), parse2(ts)?)?;
-                let code = if sharp_vals.self_span.is_some() {
-                    filter.kind = FilterKind::UseSelf;
-                    filter.make_let_self(var)
-                } else {
-                    filter.kind = FilterKind::Func { ty: quote!(Self) };
-                    filter.make_let(var)
-                };
-                results.extend(code);
+                let filter = Filter::parse(attr.span(), parse2(ts)?)?;
+                let has_self = sharp_vals.self_span.is_some();
+                results.extend(SelfFilter { filter, has_self }.make_let(var));
             }
         }
         Ok(results)
     }
 
-    fn make_let(&self, var: &Ident) -> TokenStream {
-        self.make_let_as(var, quote!(this))
-    }
-    fn make_let_member(&self, var: &Ident, member: &Member) -> TokenStream {
-        self.make_let_as(var, quote!(&this.#member))
-    }
-    fn make_let_as(&self, var: &Ident, target: TokenStream) -> TokenStream {
+    fn make_let_func(&self, var: &Ident, target: Expr, arg_ty: &Type) -> TokenStream {
         let whence = &self.whence;
         let fun = &self.fun;
-        match &self.kind {
-            FilterKind::Unknown | FilterKind::Fields | FilterKind::UseSelf => unreachable!(),
-            FilterKind::Func { ty } => {
-                quote_spanned! {fun.span()=>
-                    let #var = proptest::strategy::Strategy::prop_filter(#var, #whence, |this| (_to_fn_ptr::<#ty>(#fun))(#target));
-                }
-            }
-            FilterKind::Field { ident, by_ref } => {
-                let let_clone = if *by_ref {
-                    quote! { let #ident = #target; }
-                } else {
-                    quote! { let #ident = std::clone::Clone::clone(#target); }
-                };
-                quote_spanned! {fun.span()=>
-                    let #var = {
-                        #[allow(unused_variables)]
-                        let args_rc = <std::rc::Rc<_> as std::clone::Clone>::clone(&args_rc);
-                        proptest::strategy::Strategy::prop_filter(#var, #whence, move |this| {
-                            #[allow(unused_variables)]
-                            let args = std::ops::Deref::deref(&args_rc);
-                            #let_clone
-                            #fun
-                        })
-                    };
-                }
-            }
+        quote_spanned! {fun.span()=>
+            let #var = proptest::strategy::Strategy::prop_filter(#var, #whence, |this| (_to_fn_ptr::<#arg_ty>(#fun))(#target));
         }
     }
-
-    fn make_let_self(&self, var: &Ident) -> TokenStream {
-        let Self { whence, fun, .. } = self;
+    fn make_let_expr(&self, var: &Ident, target: Expr, ident: &Ident, by_ref: bool) -> TokenStream {
+        let whence = &self.whence;
+        let fun = &self.fun;
+        let let_clone = if by_ref {
+            quote! { let #ident = #target; }
+        } else {
+            quote! { let #ident = std::clone::Clone::clone(#target); }
+        };
         quote_spanned! {fun.span()=>
             let #var = {
                 #[allow(unused_variables)]
                 let args_rc = <std::rc::Rc<_> as std::clone::Clone>::clone(&args_rc);
-                proptest::strategy::Strategy::prop_filter(#var, #whence, move |_self| {
+                proptest::strategy::Strategy::prop_filter(#var, #whence, move |this| {
                     #[allow(unused_variables)]
                     let args = std::ops::Deref::deref(&args_rc);
+                    #let_clone
                     #fun
                 })
             };
+        }
+    }
+}
+
+#[derive(Clone)]
+enum FieldFilterKind {
+    Func { arg_ty: Type },
+    Field { ident: Ident, by_ref: bool },
+}
+
+#[derive(Clone)]
+struct FieldFilter {
+    filter: Filter,
+    kind: FieldFilterKind,
+}
+
+impl FieldFilter {
+    fn make_let(&self, var: &Ident) -> TokenStream {
+        self.make_let_as(var, &self.kind, parse_quote!(this))
+    }
+    fn make_let_member(&self, var: &Ident, member: &Member) -> TokenStream {
+        self.make_let_as(var, &self.kind, parse_quote!(&this.#member))
+    }
+    fn make_let_as(&self, var: &Ident, kind: &FieldFilterKind, target: Expr) -> TokenStream {
+        match kind {
+            FieldFilterKind::Func { arg_ty } => self.filter.make_let_func(var, target, arg_ty),
+            FieldFilterKind::Field { ident, by_ref } => {
+                self.filter.make_let_expr(var, target, ident, *by_ref)
+            }
+        }
+    }
+}
+
+struct FieldsFilter {
+    filter: Filter,
+    vals: Vec<usize>,
+}
+
+struct SelfFilter {
+    filter: Filter,
+    has_self: bool,
+}
+impl SelfFilter {
+    fn make_let(&self, var: &Ident) -> TokenStream {
+        let target = parse_quote!(this);
+        if self.has_self {
+            let ident = parse_quote!(_self);
+            self.filter.make_let_expr(var, target, &ident, true)
+        } else {
+            self.filter.make_let_func(var, target, &parse_quote!(Self))
         }
     }
 }
@@ -357,9 +363,8 @@ struct StrategyBuilder {
     items: Vec<StrategyItem>,
     self_path: Path,
     fields: Fields,
-    filters_fields: Vec<FilterItem>,
-    filters_self: Vec<Filter>,
-    filters_fn: Vec<Filter>,
+    filters_fields: Vec<FieldsFilter>,
+    filters_self: Vec<SelfFilter>,
 }
 
 struct StrategyItem {
@@ -381,11 +386,6 @@ struct StrategyItem {
     group_items_next: Vec<usize>,
     group_dependency: Vec<usize>,
     group_offset: Option<usize>,
-}
-
-struct FilterItem {
-    filter: Filter,
-    vals: Vec<usize>,
 }
 
 impl StrategyBuilder {
@@ -527,21 +527,22 @@ impl StrategyBuilder {
                 if attr.path.is_ident("filter") {
                     let mut sharp_vals = SharpVals::new(true, false);
                     let ts = sharp_vals.expand(attr.tokens.clone())?;
-                    let mut filter = Filter::parse(attr.span(), parse_parenthesized_args(ts)?)?;
-                    let ty = &field.ty;
+                    let filter = Filter::parse(attr.span(), parse_parenthesized_args(ts)?)?;
                     if sharp_vals.vals.is_empty() {
-                        filter.kind = FilterKind::Func { ty: quote!(#ty) };
-                        filters_field.push(filter);
+                        let kind = FieldFilterKind::Func {
+                            arg_ty: field.ty.clone(),
+                        };
+                        filters_field.push(FieldFilter { filter, kind });
                     } else if sharp_vals.vals.contains_key(&key) {
                         if sharp_vals.vals.len() == 1 {
-                            filter.kind = FilterKind::Field {
+                            let kind = FieldFilterKind::Field {
                                 ident: key.to_dummy_ident(),
                                 by_ref,
                             };
-                            filters_field.push(filter);
+                            filters_field.push(FieldFilter { filter, kind });
                         } else {
                             let vals = to_idxs(&sharp_vals.vals, &key_to_idx)?;
-                            filters_fields.push(FilterItem { filter, vals });
+                            filters_fields.push(FieldsFilter { filter, vals });
                         }
                     } else {
                         bail!(attr.span(), "`#{}` is not used.", key);
@@ -596,23 +597,18 @@ impl StrategyBuilder {
                 ));
             }
         }
-        let mut filters_fn = Vec::new();
         let mut filters_self = Vec::new();
         for attr in attrs {
             if attr.path.is_ident("filter") {
                 let mut sharp_vals = SharpVals::new(true, filter_allow_self);
                 let ts = sharp_vals.expand(attr.tokens.clone())?;
-                let mut filter = Filter::parse(attr.span(), parse2(ts)?)?;
+                let filter = Filter::parse(attr.span(), parse2(ts)?)?;
                 if !sharp_vals.vals.is_empty() {
-                    filter.kind = FilterKind::Fields;
                     let vals = to_idxs(&sharp_vals.vals, &key_to_idx)?;
-                    filters_fields.push(FilterItem { filter, vals });
-                } else if sharp_vals.self_span.is_some() {
-                    filter.kind = FilterKind::UseSelf;
-                    filters_self.push(filter);
+                    filters_fields.push(FieldsFilter { filter, vals });
                 } else {
-                    filter.kind = FilterKind::Func { ty: quote!(Self) };
-                    filters_fn.push(filter);
+                    let has_self = sharp_vals.self_span.is_some();
+                    filters_self.push(SelfFilter { filter, has_self });
                 }
             }
         }
@@ -625,7 +621,6 @@ impl StrategyBuilder {
             fields,
             filters_fields,
             filters_self,
-            filters_fn,
         })
     }
     fn get_bound_types(&self, generics: &GenericParamSet, bounds: &mut Bounds) -> Result<()> {
@@ -709,9 +704,6 @@ impl StrategyBuilder {
             let #s = proptest::strategy::Strategy::prop_map(#s, |_values| #constructor);
         });
         for filter in &self.filters_self {
-            self.ts.extend(filter.make_let_self(s));
-        }
-        for filter in &self.filters_fn {
             self.ts.extend(filter.make_let(s));
         }
         self.ts.extend(quote!(#s));
@@ -1078,7 +1070,7 @@ impl StrategyValueType {
 }
 struct StrategyExpr {
     expr: TokenStream,
-    filters: Vec<Filter>,
+    filters: Vec<FieldFilter>,
     ty: TokenStream,
     is_jast: bool,
 }
