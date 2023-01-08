@@ -30,6 +30,16 @@ fn with_strategy(#[strategy(2..10u32)] x: u32) {
     assert!(x < 10);
 }
 
+#[proptest]
+fn with_map(
+    #[strategy(2..10u32)]
+    #[map(|x| x + 2)]
+    x: u32,
+) {
+    assert!(4 <= x);
+    assert!(x < 12);
+}
+
 #[proptest(ProptestConfig { timeout: 3, ..ProptestConfig::default() })]
 #[should_panic]
 fn config_expr() {
