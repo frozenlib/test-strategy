@@ -1119,6 +1119,24 @@ fn args_map_filter_fn_val_x2() {
 }
 
 #[test]
+fn args_flat_map_x2() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        a0: i32,
+        a1: i32,
+        #[strategy(#a0..#a1 + args.m)]
+        b0: i32,
+        #[strategy(#a0..#a1 + args.m)]
+        b1: i32,
+    }
+}
+
+#[test]
 fn auto_bound_tuple_struct() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct<T>(T);
