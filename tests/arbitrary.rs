@@ -498,6 +498,25 @@ fn filter_struct_field_fn() {
 }
 
 #[test]
+fn filter_struct_field_fn_dependency() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    struct TestStruct {
+        a: u32,
+        #[filter(is_larger_than(#a))]
+        b: u32,
+    }
+
+    fn is_larger_than(t: u32) -> impl Fn(&u32) -> bool {
+        move |&value| value > t
+    }
+    assert_arbitrary(
+        (any::<u32>(), any::<u32>())
+            .prop_filter("is_larger_than(a)", |&(a, b)| is_larger_than(a)(&b))
+            .prop_map(|(a, b)| TestStruct { a, b }),
+    );
+}
+
+#[test]
 fn filter_struct_field_sharp_val() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct {
@@ -514,6 +533,7 @@ fn filter_struct_field_sharp_val() {
             .prop_map(|x| TestStruct { x }),
     );
 }
+
 #[test]
 fn filter_tuple_struct_field_sharp_val() {
     #[derive(Arbitrary, Debug, PartialEq)]
