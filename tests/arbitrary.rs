@@ -1502,19 +1502,20 @@ fn filter_with_strategy_and_map() {
         y: usize,
     }
 
-    let s = (10..100usize, any::<Index>()).prop_flat_map(|x| {
-        (
-            0..x.0,
-            Just(x.1.index(x.0)).prop_filter("", |y| y % 2 == 0),
-            Just(x.0),
-            Just(x.1),
-        )
-    });
-    let s = (s,).prop_map(|(x,)| (x.2, x.0, x.1, x.3)).prop_map(|x| X {
-        a: x.0,
-        x: x.1,
-        y: x.2,
-    });
+    let s = (10..100usize, any::<Index>())
+        .prop_flat_map(|x| {
+            (
+                0..x.0,
+                Just(x.1.index(x.0)).prop_filter("", |y| y % 2 == 0),
+                Just(x.0),
+                Just(x.1),
+            )
+        })
+        .prop_map(|x| X {
+            a: x.2,
+            x: x.0,
+            y: x.1,
+        });
 
     assert_arbitrary(s);
 }

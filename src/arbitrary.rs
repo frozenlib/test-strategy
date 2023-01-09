@@ -884,9 +884,19 @@ impl StrategyBuilder {
                     let member = self.member(group_item_next);
                     exprs.push(quote!(_this.#member));
                 }
-                let ident = self.items[idx].strategy_ident();
-                self.ts.extend( quote! {
-                    let #ident = proptest::strategy::Strategy::prop_map((#(#inputs, )*), |_this| (#(#exprs,)*));
+                let var = self.items[idx].strategy_ident();
+                let args = if inputs.len() == 1 {
+                    // To avoid shrinking capacity reduction, single-element tuples are expanded and then applied to prop_map.
+                    let input = &inputs[0];
+                    quote! { #input, |_this| {
+                        let _this = (_this,);
+                        (#(#exprs,)*)
+                    }}
+                } else {
+                    quote!((#(#inputs, )*), |_this| (#(#exprs,)*))
+                };
+                self.ts.extend(quote! {
+                    let #var = proptest::strategy::Strategy::prop_map(#args);
                 });
             }
         }
