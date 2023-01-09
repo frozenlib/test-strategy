@@ -362,6 +362,8 @@
 //! You can also use multiple variables in a predicate.
 //!
 //! ```rust
+//! use test_strategy::Arbitrary;
+//!
 //! #[derive(Arbitrary, Debug)]
 //! #[filter((#x + #y) % 2 == 0)]
 //! struct T1 {
