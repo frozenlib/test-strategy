@@ -1,17 +1,15 @@
-error[E0308]: mismatched types
+error[E0593]: function is expected to take 1 argument, but it takes 0 arguments
  --> tests/compile_fail/invalid_filter_field.rs:5:14
   |
 5 |     #[filter(bad_filter)]
-  |              ^^^^^^^^^^
-  |              |
-  |              incorrect number of function parameters
-  |              arguments to this function are incorrect
+  |              ^^^^^^^^^^ expected function that takes 1 argument
+...
+8 | fn bad_filter() {}
+  | --------------- takes 0 arguments
   |
-  = note: expected fn pointer `for<'a> fn(&'a u32) -> bool`
-                found fn item `fn() {bad_filter}`
-note: function defined here
+note: required by a bound in `_filter_fn`
  --> tests/compile_fail/invalid_filter_field.rs:2:10
   |
 2 | #[derive(Arbitrary, Debug, PartialEq)]
-  |          ^^^^^^^^^
+  |          ^^^^^^^^^ required by this bound in `_filter_fn`
   = note: this error originates in the derive macro `Arbitrary` (in Nightly builds, run with -Z macro-backtrace for more info)

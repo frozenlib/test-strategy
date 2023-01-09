@@ -42,7 +42,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
             #[allow(clippy::redundant_closure_call)]
             fn arbitrary_with(args: <Self as proptest::arbitrary::Arbitrary>::Parameters) -> Self::Strategy {
                 #[allow(dead_code)]
-                fn _to_fn<T>(f: impl Fn(&T) -> bool) -> impl Fn(&T) -> bool {
+                fn _filter_fn<T>(f: impl Fn(&T) -> bool) -> impl Fn(&T) -> bool {
                     f
                 }
                 #[allow(dead_code)]
@@ -281,7 +281,7 @@ impl Filter {
     fn make_let_func(&self, var: &Ident, target: Expr, arg_ty: &Type) -> TokenStream {
         let span = self.fun.span();
         let fun = &self.fun;
-        let fun = parse_quote_spanned!(span=> (_to_fn::<#arg_ty>(#fun))(#target));
+        let fun = parse_quote_spanned!(span=> (_filter_fn::<#arg_ty>(#fun))(#target));
         Self::make_let_as(&self.whence, &fun, var, quote!())
     }
     fn make_let_expr(&self, var: &Ident, target: Expr, ident: &Ident, by_ref: bool) -> TokenStream {
