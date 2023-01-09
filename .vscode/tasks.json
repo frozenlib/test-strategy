@@ -63,6 +63,33 @@
     },
     {
       "type": "shell",
+      "label": "cargo test nightly",
+      "command": "cargo",
+      "args": [
+        "+nightly",
+        "test",
+        "--target-dir",
+        "target/debug-nightly",
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+      "options": {
+        "env": {
+          "RUSTFLAGS": "-Z proc-macro-backtrace"
+        }
+      },
+    },
+    {
+      "type": "shell",
       "label": "cargo run exmaple",
       "command": "cargo",
       "args": [

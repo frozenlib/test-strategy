@@ -390,9 +390,12 @@ struct StrategyItem {
     key: FieldKey,
     by_ref: bool,
     is_field: bool,
+    base_idx: Option<usize>,
     arbitrary_type: Option<Type>,
     expr: StrategyExpr,
     dependency: Vec<usize>,
+
+    is_dropped: bool,
 
     group: Option<usize>,
     group_next: Option<usize>,
@@ -602,24 +605,26 @@ impl StrategyBuilder {
                 None
             };
             if let Some(mut expr_map) = expr_map {
-                let idx_other = fields.len() + items_other.len();
+                let base_idx = fields.len() + items_other.len();
                 let mut dependency_map = to_idxs(&sharp_vals_map.vals, &key_to_idx)?;
-                dependency_map.push(idx_other);
+                dependency_map.push(base_idx);
                 expr_map.filters = filters_field;
                 items_field.push(StrategyItem::new(
                     idx,
                     key.clone(),
                     by_ref,
                     true,
+                    Some(base_idx),
                     arbitrary_type,
                     expr_map,
                     dependency_map,
                 ));
                 items_other.push(StrategyItem::new(
-                    idx_other,
+                    base_idx,
                     key,
                     false,
                     false,
+                    None,
                     None,
                     expr_strategy,
                     dependency_strategy,
@@ -631,6 +636,7 @@ impl StrategyBuilder {
                     key,
                     by_ref,
                     true,
+                    None,
                     arbitrary_type,
                     expr_strategy,
                     dependency_strategy,
@@ -694,7 +700,7 @@ impl StrategyBuilder {
         for item in &mut self.items {
             item.try_create_independent_strategy(&mut self.ts);
         }
-        while !self.is_exists_all() {
+        while !self.is_exists_all_fields() {
             if !self.try_create_dependent_strategy() {
                 let mut cd_str = String::new();
                 let cd_idxs = self.get_cyclic_dependency().unwrap();
@@ -754,10 +760,7 @@ impl StrategyBuilder {
                 .min()
                 .unwrap_or(None);
             if let Some(group_next) = group_next {
-                self.set_group_next(idx, group_next);
-                for i in 0..self.items[idx].dependency.len() {
-                    self.set_group_next(self.items[idx].dependency[i], group_next)
-                }
+                self.set_group_next_new(idx, group_next);
                 created = true;
             }
         }
@@ -847,6 +850,15 @@ impl StrategyBuilder {
         }
         self.resolve_group_next_input(group_next)
     }
+    fn set_group_next_new(&mut self, idx: usize, group_next: usize) {
+        if let Some(base_idx) = self.items[idx].base_idx {
+            self.items[base_idx].is_dropped = true;
+        }
+        self.set_group_next(idx, group_next);
+        for i in 0..self.items[idx].dependency.len() {
+            self.set_group_next(self.items[idx].dependency[i], group_next)
+        }
+    }
     fn set_group_next(&mut self, group: usize, group_next: usize) {
         let group_next_old = self.items[group].group_next;
         if group_next_old == Some(group_next) {
@@ -917,10 +929,13 @@ impl StrategyBuilder {
         }
     }
     fn register_group_next_items(&mut self, idx: usize) {
-        if let Some(group_next) = self.items[idx].group_next {
-            debug_assert!(self.items[idx].offset_next.is_none());
-            self.items[idx].offset_next = Some(self.items[group_next].group_items_next.len());
-            self.items[group_next].group_items_next.push(idx);
+        let item = &self.items[idx];
+        if !item.is_dropped {
+            if let Some(group_next) = item.group_next {
+                debug_assert!(item.offset_next.is_none());
+                self.items[idx].offset_next = Some(self.items[group_next].group_items_next.len());
+                self.items[group_next].group_items_next.push(idx);
+            }
         }
     }
     fn strategy_expr(&self, idx: usize) -> StrategyExpr {
@@ -991,11 +1006,12 @@ impl StrategyBuilder {
         false
     }
 
-    fn is_exists_all(&self) -> bool {
-        (0..self.items.len()).all(|idx| self.is_exists(idx))
+    fn is_exists_all_fields(&self) -> bool {
+        (0..self.fields.len()).all(|idx| self.is_exists(idx))
     }
     fn is_exists(&self, idx: usize) -> bool {
-        self.items[idx].group.is_some()
+        let item = &self.items[idx];
+        item.group.is_some() || item.is_dropped
     }
     fn is_group(&self, idx: usize) -> bool {
         self.items[idx].group == Some(idx)
@@ -1013,11 +1029,13 @@ impl StrategyBuilder {
 }
 
 impl StrategyItem {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         idx: usize,
         key: FieldKey,
         by_ref: bool,
         is_field: bool,
+        base_idx: Option<usize>,
         arbitrary_type: Option<Type>,
         expr: StrategyExpr,
         dependency: Vec<usize>,
@@ -1027,9 +1045,11 @@ impl StrategyItem {
             key,
             by_ref,
             is_field,
+            base_idx,
             arbitrary_type,
             expr,
             dependency,
+            is_dropped: false,
             group: None,
             group_next: None,
             offset: None,

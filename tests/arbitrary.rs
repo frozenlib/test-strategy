@@ -1468,6 +1468,33 @@ fn map_strategy_any_dependency_by_ref() {
 }
 
 #[test]
+fn map_7_field() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[map(|x: u32| x + 1)]
+        a1: u32,
+
+        #[map(|x: u32| x + 2)]
+        a2: u32,
+
+        #[map(|x: u32| x + 3)]
+        a3: u32,
+
+        #[map(|x: u32| x + 4)]
+        a4: u32,
+
+        #[map(|x: u32| x + 5)]
+        a5: u32,
+
+        #[map(|x: u32| x + 6)]
+        a6: u32,
+
+        #[map(|x: u32| x + 7)]
+        a7: u32,
+    }
+}
+
+#[test]
 fn depend_on_map() {
     #[derive(Arbitrary, Debug, PartialEq, Clone)]
     struct X {
