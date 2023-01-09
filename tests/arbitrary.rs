@@ -1027,6 +1027,98 @@ fn args_with_field_filter_fn_x2() {
 }
 
 #[test]
+fn args_map() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        #[map(|x: i32| x + args.m)]
+        x: i32,
+    }
+}
+#[test]
+fn args_map_x2() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        #[map(|x: i32| x + args.m)]
+        x: i32,
+
+        #[map(|y: i32| y + args.m)]
+        y: i32,
+    }
+}
+
+#[test]
+fn args_map_filter_val() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        #[map(|x: i32| x + args.m)]
+        #[filter(#x > args.m)]
+        x: i32,
+    }
+}
+
+#[test]
+fn args_map_filter_val_x2() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        #[map(|x: i32| x + args.m)]
+        #[filter(#x > args.m)]
+        #[filter(#x > args.m + 1)]
+        x: i32,
+    }
+}
+
+#[test]
+fn args_map_filter_fn_val() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        #[map(|x: i32| x + args.m)]
+        #[filter(|&x: &i32| x > args.m)]
+        x: i32,
+    }
+}
+
+#[test]
+fn args_map_filter_fn_val_x2() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        #[map(|x: i32| x + args.m)]
+        #[filter(|&x: &i32| x > args.m)]
+        #[filter(|&x: &i32| x > args.m + 1)]
+        x: i32,
+    }
+}
+
+#[test]
 fn auto_bound_tuple_struct() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct<T>(T);
