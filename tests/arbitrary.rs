@@ -1156,6 +1156,20 @@ fn auto_bound_x2() {
 }
 
 #[test]
+fn auto_bound_map_input() {
+    #[derive(Debug, PartialEq, Clone)]
+    struct Wrapped<T>(T);
+
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(bound(T: Clone, ..))]
+    struct TestStruct<T> {
+        #[by_ref]
+        #[map(|t: T| Wrapped(t))]
+        t: Wrapped<T>,
+    }
+}
+
+#[test]
 fn manual_bound_type() {
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(bound(T))]

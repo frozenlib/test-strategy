@@ -389,8 +389,8 @@ struct StrategyItem {
     idx: usize,
     key: FieldKey,
     by_ref: bool,
-    is_any: bool,
     is_field: bool,
+    arbitrary_type: Option<Type>,
     expr: StrategyExpr,
     dependency: Vec<usize>,
 
@@ -447,7 +447,7 @@ impl StrategyBuilder {
             let mut sharp_vals_map = SharpVals::new(true, false);
             let by_ref = by_refs[idx];
             let mut is_any = false;
-            let mut strategy_value_ty = StrategyValueType::Type(field.ty.clone());
+            let mut strategy_value_type = StrategyValueType::Type(field.ty.clone());
             for attr in &field.attrs {
                 if attr.path.is_ident("map") {
                     if expr_map.is_some() {
@@ -464,7 +464,7 @@ impl StrategyBuilder {
                         true,
                     ));
                     if let Some(ty) = input_type(expr) {
-                        strategy_value_ty = StrategyValueType::Type(ty.clone());
+                        strategy_value_type = StrategyValueType::Type(ty.clone());
                     } else {
                         let dependency_map = to_idxs(&sharp_vals_map.vals, &key_to_idx)?;
                         let mut lets = Vec::new();
@@ -480,7 +480,7 @@ impl StrategyBuilder {
                             };
                             lets.push(quote!(let #ident : #ty = unreachable!();))
                         }
-                        strategy_value_ty = StrategyValueType::Map(quote! { || {
+                        strategy_value_type = StrategyValueType::Map(quote! { || {
                             #[allow(clippy::diverging_sub_expression)]
                             #[allow(unreachable_code)]
                             {
@@ -504,7 +504,7 @@ impl StrategyBuilder {
                     let args = sharp_vals_strategy.expand(attr.tokens.clone())?;
                     let args = parse_parenthesized_args(args)?;
                     let expr = args.expect_single_value(attr.span())?;
-                    let ty = strategy_value_ty.get();
+                    let ty = strategy_value_type.get();
                     let func_ident = Ident::new(&format!("_strategy_of_{key}"), expr.span());
                     ts.extend(quote_spanned! {ty.span()=>
                         #[allow(dead_code)]
@@ -533,7 +533,7 @@ impl StrategyBuilder {
                     };
                     expr_strategy = Some(StrategyExpr::new(
                         quote!(),
-                        any_attr.into_strategy(&strategy_value_ty),
+                        any_attr.into_strategy(&strategy_value_type),
                         false,
                     ));
                 }
@@ -584,14 +584,23 @@ impl StrategyBuilder {
                 expr_strategy
             } else {
                 is_any = true;
-                let ty = strategy_value_ty.get();
+                let ty = strategy_value_type.get();
                 StrategyExpr::new(
                     quote!(#ty),
-                    AnyArgs::empty().into_strategy(&strategy_value_ty),
+                    AnyArgs::empty().into_strategy(&strategy_value_type),
                     false,
                 )
             };
             let dependency_strategy = to_idxs(&sharp_vals_strategy.vals, &key_to_idx)?;
+            let arbitrary_type = if is_any {
+                if let StrategyValueType::Type(ty) = strategy_value_type {
+                    Some(ty)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
             if let Some(mut expr_map) = expr_map {
                 let idx_other = fields.len() + items_other.len();
                 let mut dependency_map = to_idxs(&sharp_vals_map.vals, &key_to_idx)?;
@@ -601,8 +610,8 @@ impl StrategyBuilder {
                     idx,
                     key.clone(),
                     by_ref,
-                    false,
                     true,
+                    arbitrary_type,
                     expr_map,
                     dependency_map,
                 ));
@@ -611,7 +620,7 @@ impl StrategyBuilder {
                     key,
                     false,
                     false,
-                    false,
+                    None,
                     expr_strategy,
                     dependency_strategy,
                 ));
@@ -621,8 +630,8 @@ impl StrategyBuilder {
                     idx,
                     key,
                     by_ref,
-                    is_any,
                     true,
+                    arbitrary_type,
                     expr_strategy,
                     dependency_strategy,
                 ));
@@ -667,10 +676,11 @@ impl StrategyBuilder {
         for (idx, field) in self.fields.iter().enumerate() {
             let args: ArbitraryArgsForFieldOrVariant = parse_from_attrs(&field.attrs, "arbitrary")?;
             let mut bounds = bounds.child(args.bound);
-            if bounds.can_extend && self.items[idx].is_any {
-                let ty = &field.ty;
-                if generics.contains_in_type(ty) {
-                    bounds.ty.push(ty.clone());
+            if bounds.can_extend {
+                if let Some(ty) = &self.items[idx].arbitrary_type {
+                    if generics.contains_in_type(ty) {
+                        bounds.ty.push(ty.clone());
+                    }
                 }
             }
         }
@@ -997,8 +1007,8 @@ impl StrategyItem {
         idx: usize,
         key: FieldKey,
         by_ref: bool,
-        is_any: bool,
         is_field: bool,
+        arbitrary_type: Option<Type>,
         expr: StrategyExpr,
         dependency: Vec<usize>,
     ) -> Self {
@@ -1006,8 +1016,8 @@ impl StrategyItem {
             idx,
             key,
             by_ref,
-            is_any,
             is_field,
+            arbitrary_type,
             expr,
             dependency,
             group: None,
