@@ -46,6 +46,7 @@ fn struct_no_attr_field_x2() {
         x: u16,
         y: u8,
     }
+
     assert_arbitrary((any::<u16>(), any::<u8>()).prop_map(|(x, y)| TestStruct { x, y }));
 }
 
@@ -65,6 +66,26 @@ fn struct_field_raw_keyword_ident() {
         r#fn: u16,
     }
     assert_arbitrary(any::<u16>().prop_map(|r#fn| TestStruct { r#fn }));
+}
+
+#[test]
+fn struct_over_12_field() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    struct TestStruct {
+        a0: u32,
+        a1: u32,
+        a2: u32,
+        a3: u32,
+        a4: u32,
+        a5: u32,
+        a6: u32,
+        a7: u32,
+        a8: u32,
+        a9: u32,
+        a10: u32,
+        a11: u32,
+        a12: u32,
+    }
 }
 
 #[test]
@@ -512,6 +533,22 @@ fn filter_struct_field_fn_dependency() {
     assert_arbitrary(
         (any::<u32>(), any::<u32>())
             .prop_filter("is_larger_than(a)", |&(a, b)| is_larger_than(a)(&b))
+            .prop_map(|(a, b)| TestStruct { a, b }),
+    );
+}
+
+#[test]
+fn filter_struct_field_fn_dependency_closure() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    struct TestStruct {
+        a: u32,
+        #[filter(|&b| b > #a)]
+        b: u32,
+    }
+
+    assert_arbitrary(
+        (any::<u32>(), any::<u32>())
+            .prop_filter("b > a", |&(a, b)| b > a)
             .prop_map(|(a, b)| TestStruct { a, b }),
     );
 }
