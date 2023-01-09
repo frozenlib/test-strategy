@@ -809,6 +809,7 @@ fn args_with_struct_filter_sharp_val_x2() {
         x: i32,
     }
 }
+
 #[test]
 fn args_with_struct_filter_sharp_self() {
     #[derive(Default)]
@@ -835,6 +836,43 @@ fn args_with_struct_filter_sharp_self_x2() {
     #[filter(#self.x % args.m != 1)]
     struct TestStruct {
         x: i32,
+    }
+}
+
+#[test]
+fn args_with_struct_filter_fn() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    #[filter(is_valid_fn(args.m))]
+    struct TestStruct {
+        x: i32,
+    }
+
+    fn is_valid_fn(_: i32) -> impl Fn(&TestStruct) -> bool {
+        |_| true
+    }
+}
+
+#[test]
+fn args_with_struct_filter_fn_x2() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    #[filter(is_valid_fn(args.m))]
+    #[filter(is_valid_fn(args.m + 1))]
+    struct TestStruct {
+        x: i32,
+    }
+
+    fn is_valid_fn(_: i32) -> impl Fn(&TestStruct) -> bool {
+        |_| true
     }
 }
 
@@ -948,6 +986,43 @@ fn args_with_field_filter_sharp_val_x2() {
         #[filter(#x % args.m != 0)]
         #[filter(#x % args.m != 1)]
         x: i32,
+    }
+}
+
+#[test]
+fn args_with_field_filter_fn() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        #[filter(is_larger_than(args.m))]
+        x: i32,
+    }
+
+    fn is_larger_than(t: i32) -> impl Fn(&i32) -> bool {
+        move |x: &i32| *x > t
+    }
+}
+
+#[test]
+fn args_with_field_filter_fn_x2() {
+    #[derive(Default)]
+    struct TestArgs {
+        m: i32,
+    }
+    #[derive(Arbitrary, Debug, PartialEq)]
+    #[arbitrary(args = TestArgs)]
+    struct TestStruct {
+        #[filter(is_larger_than(args.m))]
+        #[filter(is_larger_than(args.m + 1))]
+        x: i32,
+    }
+
+    fn is_larger_than(t: i32) -> impl Fn(&i32) -> bool {
+        move |x: &i32| *x > t
     }
 }
 

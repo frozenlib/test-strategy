@@ -8,11 +8,11 @@ use quote::{quote, quote_spanned, ToTokens};
 use std::collections::BTreeMap;
 use std::{collections::HashMap, fmt::Write, mem::take};
 use structmeta::*;
-use syn::Pat;
 use syn::{
     parse2, parse_quote, parse_str, spanned::Spanned, Attribute, Data, DataEnum, DataStruct,
     DeriveInput, Expr, Fields, Ident, Index, Lit, Member, Path, Result, Type,
 };
+use syn::{parse_quote_spanned, Pat};
 
 pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
     let args: ArbitraryArgsForType = parse_from_attrs(&input.attrs, "arbitrary")?;
@@ -42,7 +42,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
             #[allow(clippy::redundant_closure_call)]
             fn arbitrary_with(args: <Self as proptest::arbitrary::Arbitrary>::Parameters) -> Self::Strategy {
                 #[allow(dead_code)]
-                fn _to_fn_ptr<T>(f: fn(&T) -> bool) -> fn(&T) -> bool {
+                fn _to_fn<T>(f: impl Fn(&T) -> bool) -> impl Fn(&T) -> bool {
                     f
                 }
                 #[allow(dead_code)]
@@ -279,11 +279,10 @@ impl Filter {
     }
 
     fn make_let_func(&self, var: &Ident, target: Expr, arg_ty: &Type) -> TokenStream {
-        let whence = &self.whence;
+        let span = self.fun.span();
         let fun = &self.fun;
-        quote_spanned! {fun.span()=>
-            let #var = proptest::strategy::Strategy::prop_filter(#var, #whence, |_this| (_to_fn_ptr::<#arg_ty>(#fun))(#target));
-        }
+        let fun = parse_quote_spanned!(span=> (_to_fn::<#arg_ty>(#fun))(#target));
+        Self::make_let_as(&self.whence, &fun, var, quote!())
     }
     fn make_let_expr(&self, var: &Ident, target: Expr, ident: &Ident, by_ref: bool) -> TokenStream {
         let lets = if by_ref {
@@ -291,11 +290,9 @@ impl Filter {
         } else {
             quote! { let #ident = std::clone::Clone::clone(#target); }
         };
-        self.make_let_as(var, lets)
+        Self::make_let_as(&self.whence, &self.fun, var, lets)
     }
-    fn make_let_as(&self, var: &Ident, lets: TokenStream) -> TokenStream {
-        let whence = &self.whence;
-        let fun = &self.fun;
+    fn make_let_as(whence: &Expr, fun: &Expr, var: &Ident, lets: TokenStream) -> TokenStream {
         quote_spanned! {fun.span()=>
             let #var = {
                 #[allow(unused_variables)]
@@ -359,8 +356,7 @@ impl FieldsFilter {
         } else {
             parse_quote!(#fun)
         };
-        let whence = self.filter.whence.clone();
-        Filter { fun, whence }.make_let_as(var, quote!(#(#lets)*))
+        Filter::make_let_as(&self.filter.whence, &fun, var, quote!(#(#lets)*))
     }
 }
 
