@@ -367,12 +367,17 @@ struct TestInput {
 You can also use multiple variables in a predicate.
 
 ```rust
-use test_strategy::Arbitrary;
-
 #[derive(Arbitrary, Debug)]
 #[filter((#x + #y) % 2 == 0)]
-struct TestInput {
+struct T1 {
     x: u32,
+    y: u32,
+}
+
+#[derive(Arbitrary, Debug)]
+struct T2 {
+    x: u32,
+    #[filter((#x + #y) % 2 == 0)]
     y: u32,
 }
 ```
@@ -390,7 +395,7 @@ struct TestInput {
 }
 ```
 
-If the argument of the `#[filter]` does not contain a variable marked with `#`, it is treated as a predicate function.
+If the expression specified for `#[filter]` does not contain a variable named by appending # to its own field name, the expression is treated as a predicate function, rather than an expression that returns a bool.
 
 ```rust
 use test_strategy::Arbitrary;
@@ -403,18 +408,29 @@ struct TestInput {
 fn is_even(x: &u32) -> bool {
     x % 2 == 0
 }
+
+#[derive(Arbitrary, Debug)]
+struct T2 {
+    a: u32,
+
+    // Since `#a` exists but `#b` does not, it is treated as a predicate function.
+    #[filter(|&x| x > #a)]
+    b: u32,
+}
 ```
+
+Similarly, an expression that does not contain `#self` in the `#[filter(...)]` that it attaches to a type is treated as a predicate function.
 
 ```rust
 use test_strategy::Arbitrary;
 
 #[derive(Arbitrary, Debug)]
-#[filter(x_is_even)]
-struct TestInput {
+#[filter(is_even)]
+struct T {
     x: u32,
 }
-fn x_is_even(input: &TestInput) -> bool {
-    input.x % 2 == 0
+fn is_even(t: &T) -> bool {
+    t.x % 2 == 0
 }
 ```
 
@@ -425,14 +441,14 @@ use test_strategy::Arbitrary;
 
 #[derive(Arbitrary, Debug)]
 struct TestInput {
-    #[filter("filter name", #x % 2 == 0)]
+    #[filter("x is even", #x % 2 == 0)]
     x: u32,
 }
 ```
 
 ## `#[by_ref]`
 
-By default, if you use a variable with `#[strategy]`, `#[any]` or `#[filter]` with `#` attached to it, the cloned value is set.
+By default, if you use a variable with `#[strategy]`, `#[any]`, `#[map]` or `#[filter]` with `#` attached to it, the cloned value is set.
 
 Adding `#[by_ref]` to the field makes it use the reference instead of the cloned value.
 
