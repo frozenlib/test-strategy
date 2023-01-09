@@ -252,7 +252,96 @@
 //!
 //! ## `#[map]`
 //!
-//! TODO
+//! Instead of using `prop_map` in `#[strategy(...)]`, `#[map(...)]` can be used.
+//!
+//! The following codes mean the same thing.
+//!
+//! ```rust
+//! use proptest::arbitrary::any;
+//! use proptest::strategy::Strategy;
+//! use test_strategy::Arbitrary;
+//!
+//! #[derive(Arbitrary, Debug)]
+//! struct TestInput1 {
+//!     #[strategy(any::<u32>().prop_map(|x| x + 1))]
+//!     x: u32,
+//! }
+//!
+//! #[derive(Arbitrary, Debug)]
+//! struct TestInput2 {
+//!     #[strategy(any::<u32>())]
+//!     #[map(|x| x + 1)]
+//!     x: u32,
+//! }
+//!
+//! #[derive(Arbitrary, Debug)]
+//! struct TestInput3 {
+//!     #[map(|x: u32| x + 1)]
+//!     x: u32,
+//! }
+//! ```
+//!
+//! References to other fields in the function applied to `prop_map` or `#[map(...)]` will generate different strategies.
+//!
+//! Referencing another field in `#[strategy(...)]` will expand it to `prop_flat_map`, even if it is in `prop_map`.
+//!
+//! ```rust
+//! use proptest::arbitrary::any;
+//! use proptest::strategy::{Just, Strategy};
+//! use test_strategy::Arbitrary;
+//!
+//! #[derive(Arbitrary, Debug)]
+//! struct T1 {
+//!     x: u32,
+//!
+//!     #[strategy(any::<u32>().prop_map(move |y| #x + y))]
+//!     y: u32,
+//! }
+//! // The code above generates the following strategy.
+//! let t1 = any::<u32>()
+//!     .prop_flat_map(|x| (Just(x), any::<u32>().prop_map(move |y| x + y)))
+//!     .prop_map(|(x, y)| T1 { x, y });
+//! ```
+//!
+//! On the other hand, if you refer to another field in `#[map]`, it will expand to `prop_map`.
+//!
+//! ```rust
+//! use proptest::arbitrary::any;
+//! use proptest::strategy::Strategy;
+//! use test_strategy::Arbitrary;
+//!
+//! #[derive(Arbitrary, Debug)]
+//! struct T2 {
+//!     x: u32,
+//!
+//!     #[map(|y: u32| #x + y)]
+//!     y: u32,
+//! }
+//! // The code above generates the following strategy.
+//! let t2 = (any::<u32>(), any::<u32>()).prop_map(|(x, y)| T2 { x, y });
+//! ```
+//!
+//! If the input and output types of the function specified in `#[map]` are different, the value type of the strategy set in `#[strategy]` is the type of the function's input, not the type of the field.
+//!
+//! ```rust
+//! use proptest::arbitrary::any;
+//! use proptest::sample::Index;
+//! use test_strategy::Arbitrary;
+//!
+//! #[derive(Arbitrary, Debug)]
+//! struct T1 {
+//!     #[strategy(any::<Index>())]
+//!     #[map(|i: Index| i.index(10))]
+//!     x: usize,
+//! }
+//!
+//! // `#[strategy(any::<Index>())]` can be omitted.
+//! #[derive(Arbitrary, Debug)]
+//! struct T2 {
+//!     #[map(|i: Index| i.index(10))]
+//!     x: usize,
+//! }
+//! ```
 //!
 //! ## `#[filter]`
 //!
