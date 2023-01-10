@@ -469,7 +469,7 @@
 //!
 //! Specifies the type of `Arbitrary::Parameters`.
 //!
-//! You can use the value of this type in `#[strategy]`, `#[any]`, or `#[filter]` with the variable name `args`.
+//! You can use the `Rc` value of this type in `#[strategy]`, `#[any]`, or `#[filter]` with the variable name `args`.
 //!
 //! ```rust
 //! use test_strategy::Arbitrary;
