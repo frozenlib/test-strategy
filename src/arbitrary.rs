@@ -1066,10 +1066,6 @@ impl StrategyItem {
     fn strategy_ident(&self) -> Ident {
         parse_str(&format!("strategy_{}", self.idx)).unwrap()
     }
-    // fn expr(&self) -> TokenStream {
-    //     let member = idx_to_member(self.offset.unwrap());
-    //     quote!(_this.#member)
-    // }
     fn let_sharp_val(&self, from_ref: bool) -> TokenStream {
         let ident = self.key.to_dummy_ident();
         let expr = if from_ref {
