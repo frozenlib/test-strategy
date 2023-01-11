@@ -1505,6 +1505,31 @@ fn map_strategy_any_dependency_by_ref() {
 }
 
 #[test]
+fn map_with_by_ref() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[by_ref]
+        #[map(|x: u32| x + 1)]
+        x: u32,
+    }
+
+    assert_arbitrary(any::<u32>().prop_map(|x| X { x: x + 1 }));
+}
+
+#[test]
+fn map_with_by_ref_and_dependency() {
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        x: u32,
+
+        #[by_ref]
+        #[map(|y: u32| #x ^ y)]
+        y: u32,
+    }
+    assert_arbitrary((any::<u32>(), any::<u32>()).prop_map(|(x, y)| X { x, y: x ^ y }));
+}
+
+#[test]
 fn map_7_field() {
     #[derive(Arbitrary, Debug, PartialEq, Clone)]
     struct X {
