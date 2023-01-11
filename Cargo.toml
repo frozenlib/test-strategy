@@ -11,10 +11,10 @@ categories = ["development-tools::testing"]
 description = "Procedural macro to easily write higher-order strategies in proptest."
 edition = "2021"
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 proc-macro = true
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 syn = { version = "1.0.107", features = ["visit", "full"] }
