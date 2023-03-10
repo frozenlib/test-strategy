@@ -1,11 +1,11 @@
-error[E0271]: type mismatch resolving `<std::ops::Range<usize> as Strategy>::Value == u8`
+error[E0271]: type mismatch resolving `<Range<usize> as Strategy>::Value == u8`
  --> tests/compile_fail/invalid_strategy.rs:4:16
   |
 4 |     #[strategy(0..10usize)]
   |                ^---------
   |                |
   |                expected `u8`, found `usize`
-  |                this tail expression is of type `std::ops::Range<_>`
+  |                this tail expression is of type `Range<usize>`
   |
 note: required by a bound in `_strategy_of_x`
  --> tests/compile_fail/invalid_strategy.rs:5:8
