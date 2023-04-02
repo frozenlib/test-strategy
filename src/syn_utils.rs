@@ -375,13 +375,7 @@ pub fn parse_from_attrs<T: Parse + Default>(attrs: &[Attribute], name: &str) -> 
 pub fn span_in_args(meta: &Meta) -> Span {
     match meta {
         Meta::Path(_) => meta.span(),
-        Meta::List(m) => {
-            if m.tokens.is_empty() {
-                m.delimiter.span().span()
-            } else {
-                m.tokens.span()
-            }
-        }
+        Meta::List(m) => m.delimiter.span().span(),
         Meta::NameValue(m) => m.value.span(),
     }
 }
