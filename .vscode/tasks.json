@@ -41,6 +41,23 @@
     },
     {
       "type": "shell",
+      "label": "cargo watch",
+      "command": "wt",
+      "args": [
+        "new-tab",
+        "cargo-watch",
+        "-c",
+        "-x",
+        "test"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "type": "shell",
       "label": "cargo test",
       "command": "cargo",
       "args": [

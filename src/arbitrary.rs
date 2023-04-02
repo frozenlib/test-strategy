@@ -1,6 +1,6 @@
 use crate::syn_utils::{
-    impl_trait_result, parse_parenthesized_args, to_valid_ident, Arg, Args, FieldKey,
-    GenericParamSet, SharpVals,
+    impl_trait_result, span_in_args, to_valid_ident, Arg, Args, FieldKey, GenericParamSet,
+    SharpVals,
 };
 use crate::{bound::*, syn_utils::parse_from_attrs};
 use proc_macro2::{Span, TokenStream};
@@ -9,10 +9,10 @@ use std::collections::BTreeMap;
 use std::{collections::HashMap, fmt::Write, mem::take};
 use structmeta::*;
 use syn::{
-    parse2, parse_quote, parse_str, spanned::Spanned, Attribute, Data, DataEnum, DataStruct,
-    DeriveInput, Expr, Fields, Ident, Lit, Member, Path, Result, Type,
+    parse_quote, parse_str, spanned::Spanned, Attribute, Data, DataEnum, DataStruct, DeriveInput,
+    Expr, Fields, Ident, Lit, Member, Path, Result, Type,
 };
-use syn::{parse_quote_spanned, Pat};
+use syn::{parse_quote_spanned, Meta, Pat};
 
 pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
     let args: ArbitraryArgsForType = parse_from_attrs(&input.attrs, "arbitrary")?;
@@ -105,7 +105,7 @@ fn expr_for_enum(input: &DeriveInput, data: &DataEnum, bounds: &mut Bounds) -> R
         let args: ArbitraryArgsForFieldOrVariant = parse_from_attrs(&variant.attrs, "arbitrary")?;
         let mut weight = None;
         for attr in &variant.attrs {
-            if attr.path.is_ident("weight") {
+            if attr.path().is_ident("weight") {
                 if weight.is_some() {
                     bail!(attr.span(), "`#[weight]` can specify only once.");
                 }
@@ -180,6 +180,12 @@ struct AnyArgs {
     initializer: Option<Expr>,
     setters: HashMap<String, NameValue<Expr>>,
 }
+impl Default for AnyArgs {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
 impl AnyArgs {
     fn empty() -> Self {
         Self {
@@ -271,10 +277,9 @@ impl Filter {
     fn from_enum_attrs_make_let(attrs: &[Attribute], var: &Ident) -> Result<TokenStream> {
         let mut results = TokenStream::new();
         for attr in attrs {
-            if attr.path.is_ident("filter") {
+            if attr.path().is_ident("filter") {
                 let mut sharp_vals = SharpVals::new(false, true);
-                let ts = sharp_vals.expand(attr.tokens.clone())?;
-                let mut filter = Filter::parse(attr.span(), parse2(ts)?)?;
+                let mut filter = Filter::parse(attr.span(), sharp_vals.expand_args(&attr.meta)?)?;
                 if sharp_vals.self_span.is_none() {
                     filter = filter.with_fn_arg_self();
                 }
@@ -402,13 +407,14 @@ impl StrategyBuilder {
             fs.push(field);
             let mut by_ref = false;
             for attr in &field.attrs {
-                if attr.path.is_ident("by_ref") {
+                if attr.path().is_ident("by_ref") {
                     by_ref = true;
-                    if !attr.tokens.is_empty() {
-                        bail!(
-                            attr.tokens.span(),
-                            "Brackets and arguments are not allowed."
-                        );
+                    match &attr.meta {
+                        Meta::Path(_) => {}
+                        _ => {
+                            let span = span_in_args(&attr.meta);
+                            bail!(span, "Arguments are not allowed.");
+                        }
                     }
                 }
             }
@@ -429,12 +435,11 @@ impl StrategyBuilder {
             let mut is_any = false;
             let mut strategy_value_type = StrategyValueType::Type(field.ty.clone());
             for attr in &field.attrs {
-                if attr.path.is_ident("map") {
+                if attr.path().is_ident("map") {
                     if expr_map.is_some() {
                         bail!(attr.span(), "`#[map]` can be specified only once.");
                     }
-                    let args = sharp_vals_map.expand(attr.tokens.clone())?;
-                    let args = parse_parenthesized_args(args)?;
+                    let args: Args = sharp_vals_map.expand_args_or_default(&attr.meta)?;
                     let expr = args.expect_single_value(attr.span())?;
                     let ty = &field.ty;
                     let input = key.to_dummy_ident();
@@ -472,8 +477,8 @@ impl StrategyBuilder {
                 }
             }
             for attr in &field.attrs {
-                let is_strategy_attr = attr.path.is_ident("strategy");
-                let is_any_attr = attr.path.is_ident("any");
+                let is_strategy_attr = attr.path().is_ident("strategy");
+                let is_any_attr = attr.path().is_ident("any");
                 if expr_strategy.is_some() && (is_strategy_attr || is_any_attr) {
                     bail!(
                         attr.span(),
@@ -481,8 +486,7 @@ impl StrategyBuilder {
                     );
                 }
                 if is_strategy_attr {
-                    let args = sharp_vals_strategy.expand(attr.tokens.clone())?;
-                    let args = parse_parenthesized_args(args)?;
+                    let args: Args = sharp_vals_strategy.expand_args_or_default(&attr.meta)?;
                     let expr = args.expect_single_value(attr.span())?;
                     let ty = strategy_value_type.get();
                     let func_ident = Ident::new(&format!("_strategy_of_{key}"), expr.span());
@@ -504,13 +508,8 @@ impl StrategyBuilder {
                 }
                 if is_any_attr {
                     is_any = true;
-                    let any_attr: AnyArgs = if attr.tokens.is_empty() {
-                        AnyArgs::empty()
-                    } else {
-                        let ts: TokenStream = attr.parse_args()?;
-                        let ts = sharp_vals_strategy.expand(ts)?;
-                        parse2(ts)?
-                    };
+                    let any_attr: AnyArgs =
+                        sharp_vals_strategy.expand_args_or_default(&attr.meta)?;
                     expr_strategy = Some(StrategyExpr::new(
                         quote!(),
                         any_attr.into_strategy(&strategy_value_type),
@@ -519,10 +518,9 @@ impl StrategyBuilder {
                 }
             }
             for attr in &field.attrs {
-                if attr.path.is_ident("filter") {
+                if attr.path().is_ident("filter") {
                     let mut sharp_vals = SharpVals::new(true, false);
-                    let ts = sharp_vals.expand(attr.tokens.clone())?;
-                    let filter = Filter::parse(attr.span(), parse_parenthesized_args(ts)?)?;
+                    let filter = Filter::parse(attr.span(), sharp_vals.expand_args(&attr.meta)?)?;
                     let arg = key.to_dummy_ident();
                     let uf = UnaryFilter {
                         filter,
@@ -609,10 +607,9 @@ impl StrategyBuilder {
         }
         let mut filters_self = Vec::new();
         for attr in attrs {
-            if attr.path.is_ident("filter") {
+            if attr.path().is_ident("filter") {
                 let mut sharp_vals = SharpVals::new(true, filter_allow_self);
-                let ts = sharp_vals.expand(attr.tokens.clone())?;
-                let mut filter = Filter::parse(attr.span(), parse2(ts)?)?;
+                let mut filter = Filter::parse(attr.span(), sharp_vals.expand_args(&attr.meta)?)?;
                 if !sharp_vals.vals.is_empty() {
                     let vals = to_idxs(&sharp_vals.vals, &key_to_idx)?;
                     filters_fields.push(FieldsFilter {
@@ -625,7 +622,8 @@ impl StrategyBuilder {
                     }
                     filters_self.push(filter);
                 } else {
-                    bail!(attr.tokens.span(), "Filters that reference `self` in the variant (filters with no reference to the field) cannot be set.")
+                    let span = span_in_args(&attr.meta);
+                    bail!(span, "Filters that reference `self` in the variant (filters with no reference to the field) cannot be set.")
                 }
             }
         }

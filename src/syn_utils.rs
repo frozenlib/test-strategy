@@ -15,8 +15,8 @@ use syn::{
     spanned::Spanned,
     token::{Comma, Paren},
     visit::{visit_path, visit_type, Visit},
-    Attribute, DeriveInput, Expr, Field, GenericParam, Generics, Ident, Lit, Path, Result, Token,
-    Type, WherePredicate,
+    Attribute, DeriveInput, Expr, Field, GenericParam, Generics, Ident, Lit, Meta, Path, Result,
+    Token, Type, WherePredicate,
 };
 
 macro_rules! bail {
@@ -61,14 +61,6 @@ impl<T> Deref for Parenthesized<T> {
     }
 }
 
-pub fn parse_parenthesized_args(input: TokenStream) -> Result<Args> {
-    if input.is_empty() {
-        Ok(Args::new())
-    } else {
-        Ok(parse2::<Parenthesized<Args>>(input)?.content)
-    }
-}
-
 #[derive(Parse)]
 pub struct Args(#[parse(terminated)] Punctuated<Arg, Comma>);
 
@@ -88,6 +80,11 @@ impl Args {
             Arg::Value(expr) => Ok(expr),
             Arg::NameValue { .. } => bail!(span, "expected unnamed argument."),
         }
+    }
+}
+impl Default for Args {
+    fn default() -> Self {
+        Self::new()
     }
 }
 impl Deref for Args {
@@ -179,6 +176,26 @@ impl SharpVals {
             tokens.extend(once(t));
         }
         Ok(tokens.into_iter().collect())
+    }
+
+    pub fn expand_args<T: Parse>(&mut self, meta: &Meta) -> Result<T> {
+        match meta {
+            Meta::List(m) => parse2(self.expand(m.tokens.clone())?),
+            Meta::Path(_) | Meta::NameValue(_) => {
+                let span = span_in_args(meta);
+                bail!(span, "expected arguments.")
+            }
+        }
+    }
+    pub fn expand_args_or_default<T: Parse + Default>(&mut self, meta: &Meta) -> Result<T> {
+        match meta {
+            Meta::List(m) => parse2(self.expand(m.tokens.clone())?),
+            Meta::Path(_) => Ok(T::default()),
+            Meta::NameValue(m) => bail!(
+                m.eq_token.span(),
+                "`name = value` style attribute was not supported."
+            ),
+        }
     }
 }
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -341,7 +358,7 @@ pub fn to_valid_ident(s: &str) -> Result<Ident> {
 pub fn parse_from_attrs<T: Parse + Default>(attrs: &[Attribute], name: &str) -> Result<T> {
     let mut a = None;
     for attr in attrs {
-        if attr.path.is_ident(name) {
+        if attr.path().is_ident(name) {
             if a.is_some() {
                 bail!(attr.span(), "attribute `{}` can specified only once", name);
             }
@@ -352,5 +369,19 @@ pub fn parse_from_attrs<T: Parse + Default>(attrs: &[Attribute], name: &str) -> 
         a.parse_args()
     } else {
         Ok(T::default())
+    }
+}
+
+pub fn span_in_args(meta: &Meta) -> Span {
+    match meta {
+        Meta::Path(_) => meta.span(),
+        Meta::List(m) => {
+            if m.tokens.is_empty() {
+                m.delimiter.span().span()
+            } else {
+                m.tokens.span()
+            }
+        }
+        Meta::NameValue(m) => m.value.span(),
     }
 }

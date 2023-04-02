@@ -2,8 +2,8 @@ use crate::syn_utils::{Arg, Args};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{
-    parse2, parse_quote, parse_str, spanned::Spanned, token, Field, FnArg, Ident, ItemFn, Pat,
-    Result, Visibility,
+    parse2, parse_quote, parse_str, spanned::Spanned, token, Field, FieldMutability, FnArg, Ident,
+    ItemFn, Pat, Result, Visibility,
 };
 
 pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStream> {
@@ -13,7 +13,7 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
     }
     let mut dump = false;
     item_fn.attrs.retain(|attr| {
-        if attr.path.is_ident("proptest_dump") {
+        if attr.path().is_ident("proptest_dump") {
             dump = true;
             false
         } else {
@@ -93,6 +93,7 @@ impl TestFnArg {
                         field: Field {
                             attrs: arg.attrs.clone(),
                             vis: Visibility::Inherited,
+                            mutability: FieldMutability::None,
                             ident: Some(ident.ident.clone()),
                             colon_token: Some(arg.colon_token),
                             ty: arg.ty.as_ref().clone(),
