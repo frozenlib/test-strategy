@@ -1,4 +1,4 @@
-use proptest::prelude::ProptestConfig;
+use proptest::{prelude::ProptestConfig, prop_assert};
 use test_strategy::proptest;
 
 #[proptest]
@@ -56,4 +56,19 @@ fn config_field() {
 #[should_panic]
 fn config_expr_and_field() {
     std::thread::sleep(std::time::Duration::from_millis(30));
+}
+
+#[proptest(async = "tokio")]
+async fn tokio_test() {
+    tokio::task::spawn(async {}).await.unwrap()
+}
+
+#[proptest(async = "tokio")]
+async fn tokio_test_no_copy_arg(#[strategy("a+")] s: String) {
+    prop_assert!(s.contains("a"));
+}
+
+#[proptest(async = "tokio")]
+async fn tokio_test_prop_assert() {
+    prop_assert!(true);
 }

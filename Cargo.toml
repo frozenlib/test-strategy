@@ -25,3 +25,4 @@ structmeta = "0.2.0"
 [dev-dependencies]
 proptest = "1.1.0"
 trybuild = "1.0.80"
+tokio = { version = "1.28.1", features = ["rt-multi-thread"] }

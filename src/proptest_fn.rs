@@ -2,8 +2,8 @@ use crate::syn_utils::{Arg, Args};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{
-    parse2, parse_quote, parse_str, spanned::Spanned, token, Field, FieldMutability, FnArg, Ident,
-    ItemFn, Pat, Result, Visibility,
+    parse2, parse_quote, parse_str, spanned::Spanned, token, Block, Field, FieldMutability, FnArg,
+    Ident, ItemFn, LitStr, Pat, Result, Visibility,
 };
 
 pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStream> {
@@ -20,6 +20,8 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
             true
         }
     });
+    let (mut attr_args, config_args) = TestFnAttrArgs::from(attr_args.unwrap_or_default())?;
+
     let args_type_str = format!("_{}Args", to_camel_case(&item_fn.sig.ident.to_string()));
     let args_type_ident: Ident = parse_str(&args_type_str).unwrap();
     let args = item_fn
@@ -30,6 +32,15 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
         .collect::<Result<Vec<_>>>()?;
     let args_pats = args.iter().map(|arg| arg.pat());
     let block = &item_fn.block;
+    if item_fn.sig.asyncness.is_none() {
+        attr_args.r#async = None;
+    }
+    let block = if let Some(a) = attr_args.r#async {
+        item_fn.sig.asyncness = None;
+        a.apply(block)
+    } else {
+        quote!(#block)
+    };
     let block = quote! {
         {
             let #args_type_ident { #(#args_pats,)* } = input;
@@ -39,7 +50,7 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
     item_fn.sig.inputs = parse_quote! { input: #args_type_ident };
     item_fn.block = Box::new(parse2(block)?);
     let args_fields = args.iter().map(|arg| &arg.field);
-    let config = to_proptest_config(attr_args);
+    let config = to_proptest_config(config_args);
     let ts = quote! {
         #[derive(test_strategy::Arbitrary, Debug)]
         struct #args_type_ident {
@@ -57,27 +68,26 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
     Ok(ts)
 }
 
-fn to_proptest_config(args: Option<Args>) -> TokenStream {
-    if let Some(args) = args {
-        let mut base_expr = None;
-        let mut inits = Vec::new();
-        for arg in args {
-            match arg {
-                Arg::Value(value) => base_expr = Some(value),
-                Arg::NameValue { name, value, .. } => inits.push(quote!(#name : #value)),
-            }
+fn to_proptest_config(args: Args) -> TokenStream {
+    if args.is_empty() {
+        return quote!();
+    }
+    let mut base_expr = None;
+    let mut inits = Vec::new();
+    for arg in args {
+        match arg {
+            Arg::Value(value) => base_expr = Some(value),
+            Arg::NameValue { name, value, .. } => inits.push(quote!(#name : #value)),
         }
-        let base_expr = base_expr.unwrap_or_else(|| {
-            parse_quote!(<proptest::test_runner::Config as std::default::Default>::default())
-        });
-        quote! {
-            #![proptest_config(proptest::test_runner::Config {
-                #(#inits,)*
-                .. #base_expr
-              })]
-        }
-    } else {
-        quote! {}
+    }
+    let base_expr = base_expr.unwrap_or_else(|| {
+        parse_quote!(<proptest::test_runner::Config as std::default::Default>::default())
+    });
+    quote! {
+        #![proptest_config(proptest::test_runner::Config {
+            #(#inits,)*
+            .. #base_expr
+          })]
     }
 }
 struct TestFnArg {
@@ -115,6 +125,58 @@ impl TestFnArg {
         let mutability = &self.mutability;
         let ident = &self.field.ident;
         quote!(#mutability #ident)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Async {
+    Tokio,
+}
+impl Async {
+    fn apply(&self, block: &Block) -> TokenStream {
+        match self {
+            Async::Tokio => {
+                quote! {
+                    let ret: ::core::result::Result<_, proptest::test_runner::TestCaseError> =
+                        tokio::runtime::Runtime::new()
+                            .unwrap()
+                            .block_on(async move {
+                                #block
+                                Ok(())
+                            });
+                    ret?;
+                }
+            }
+        }
+    }
+}
+impl syn::parse::Parse for Async {
+    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        let s: LitStr = input.parse()?;
+        match s.value().as_str() {
+            "tokio" => Ok(Async::Tokio),
+            _ => bail!(s.span(), "expected `tokio`."),
+        }
+    }
+}
+
+struct TestFnAttrArgs {
+    r#async: Option<Async>,
+}
+impl TestFnAttrArgs {
+    fn from(args: Args) -> Result<(Self, Args)> {
+        let mut config_args = Args::new();
+        let mut this = TestFnAttrArgs { r#async: None };
+        for arg in args {
+            if let Arg::NameValue { name, value, .. } = &arg {
+                if name == "async" {
+                    this.r#async = Some(parse2(value.to_token_stream())?);
+                    continue;
+                }
+            }
+            config_args.0.push(arg);
+        }
+        Ok((this, config_args))
     }
 }
 

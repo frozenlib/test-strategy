@@ -62,10 +62,10 @@ impl<T> Deref for Parenthesized<T> {
 }
 
 #[derive(Parse)]
-pub struct Args(#[parse(terminated)] Punctuated<Arg, Comma>);
+pub struct Args(#[parse(terminated)] pub Punctuated<Arg, Comma>);
 
 impl Args {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self(Punctuated::new())
     }
     pub fn expect_single_value(&self, span: Span) -> Result<&Expr> {
