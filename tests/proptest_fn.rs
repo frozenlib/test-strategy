@@ -65,7 +65,7 @@ async fn tokio_test() {
 
 #[proptest(async = "tokio")]
 async fn tokio_test_no_copy_arg(#[strategy("a+")] s: String) {
-    prop_assert!(s.contains("a"));
+    prop_assert!(s.contains('a'));
 }
 
 #[proptest(async = "tokio")]
