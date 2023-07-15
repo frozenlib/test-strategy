@@ -77,9 +77,9 @@ fn my_test(_x: u32, #[strategy(1..10u32)] y: u32, #[strategy(0..#y)] z: u32) {
 }
 ```
 
-## Helper attributes
+## Attributes
 
-Helper attributes can be written in the following positions.
+Attributes can be written in the following positions.
 
 | attribute                                           | function | struct | enum | variant | field | function parameter |
 | --------------------------------------------------- | -------- | ------ | ---- | ------- | ----- | ------------------ |
@@ -92,6 +92,9 @@ Helper attributes can be written in the following positions.
 | [`#[arbitrary(args = T)]`](#arbitraryargs--t)       |          | ✔      | ✔    |         |       |                    |
 | [`#[arbitrary(bound(...))]`](#arbitraryboundt1-t2-) |          | ✔      | ✔    | ✔       | ✔     |                    |
 | [`#[arbitrary(dump)]`](#arbitrarydump)              |          | ✔      | ✔    |         |       |                    |
+| [`#[proptest]`](#proptest)                          | ✔        |        |      |         |       |                    |
+| [`#[proptest(async = ...)]`](#proptestasync--)      | ✔        |        |      |         |       |                    |
+| [`#[proptest_dump]`](#proptest_dump)                | ✔        |        |      |         |       |                    |
 
 ## `#[derive(Arbitrary)]`
 
@@ -628,6 +631,33 @@ fn my_test_with_config_2(_input: i32) {
 #[proptest(cases = 1000)]
 fn my_test_with_config_3(_input: i32) {
     // ...
+}
+```
+
+### `#[proptest(async = ...)]`
+
+Async functions can be tested by setting `async = ...` to the argument of `#[proptest]`.
+
+The following values are allowed after `async =`.
+The value specifies the asynchronous runtime used for the test.
+
+- "tokio"
+
+```toml
+[dev-dependencies]
+test-strategy = "0.3"
+proptest = "1.1.0"
+tokio = { version = "1.28.1", features = ["rt-multi-thread"] }
+```
+
+```rust
+use test_strategy::proptest;
+use proptest::prop_assert;
+
+#[proptest(async = "tokio")]
+async fn my_test_async() {
+    async { }.await;
+    prop_assert!(true);    
 }
 ```
 
