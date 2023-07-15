@@ -52,6 +52,7 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
     let args_fields = args.iter().map(|arg| &arg.field);
     let config = to_proptest_config(config_args);
     let ts = quote! {
+        #[allow(dead_code)]
         #[derive(test_strategy::Arbitrary, Debug)]
         struct #args_type_ident {
             #(#args_fields,)*
