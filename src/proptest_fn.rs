@@ -21,7 +21,7 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
         }
     });
     let (mut attr_args, config_args) = TestFnAttrArgs::from(attr_args.unwrap_or_default())?;
-
+    dump |= attr_args.dump;
     let args_type_str = format!("_{}Args", to_camel_case(&item_fn.sig.ident.to_string()));
     let args_type_ident: Ident = parse_str(&args_type_str).unwrap();
     let args = item_fn
@@ -164,15 +164,25 @@ impl syn::parse::Parse for Async {
 
 struct TestFnAttrArgs {
     r#async: Option<Async>,
+    dump: bool,
 }
 impl TestFnAttrArgs {
     fn from(args: Args) -> Result<(Self, Args)> {
         let mut config_args = Args::new();
-        let mut this = TestFnAttrArgs { r#async: None };
+        let mut this = TestFnAttrArgs {
+            r#async: None,
+            dump: false,
+        };
         for arg in args {
             if let Arg::NameValue { name, value, .. } = &arg {
                 if name == "async" {
                     this.r#async = Some(parse2(value.to_token_stream())?);
+                    continue;
+                }
+            }
+            if let Arg::Value(value) = &arg {
+                if value == &parse_quote!(dump) {
+                    this.dump = true;
                     continue;
                 }
             }
