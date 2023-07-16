@@ -27,7 +27,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! test-strategy = "0.3.0"
+//! test-strategy = "0.3.1"
 //! proptest = "1.0.0"
 //! ```
 //!
