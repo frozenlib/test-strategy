@@ -645,7 +645,7 @@ The value specifies the asynchronous runtime used for the test.
 
 ```toml
 [dev-dependencies]
-test-strategy = "0.3"
+test-strategy = "0.3.1"
 proptest = "1.1.0"
 tokio = { version = "1.28.1", features = ["rt-multi-thread"] }
 ```
