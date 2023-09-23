@@ -136,10 +136,10 @@ impl SharpVals {
         while let Some(t) = iter.next() {
             match &t {
                 TokenTree::Group(g) => {
-                    tokens.push(TokenTree::Group(Group::new(
-                        g.delimiter(),
-                        self.expand(g.stream())?,
-                    )));
+                    let mut g_new =
+                        TokenTree::Group(Group::new(g.delimiter(), self.expand(g.stream())?));
+                    g_new.set_span(g.span());
+                    tokens.push(g_new);
                     continue;
                 }
                 TokenTree::Punct(p) => {
