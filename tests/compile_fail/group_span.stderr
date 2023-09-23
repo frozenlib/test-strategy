@@ -1,0 +1,18 @@
+error[E0271]: type mismatch resolving `<Range<u8> as Strategy>::Value == u32`
+ --> tests/compile_fail/group_span.rs:3:17
+  |
+3 | #[derive(Debug, Arbitrary)]
+  |                 ^^^^^^^^^ expected `u32`, found `u8`
+4 | struct X {
+5 |     #[strategy((0u8..10u8))]
+  |                 --------- this tail expression is of type `Range<u8>`
+  |
+note: required by a bound in `_strategy_of_x`
+ --> tests/compile_fail/group_span.rs:6:8
+  |
+3 | #[derive(Debug, Arbitrary)]
+  |                 --------- required by a bound in this function
+...
+6 |     x: u32,
+  |        ^^^ required by this bound in `_strategy_of_x`
+  = note: this error originates in the derive macro `Arbitrary` (in Nightly builds, run with -Z macro-backtrace for more info)
