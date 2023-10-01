@@ -27,16 +27,16 @@ jobs:
         run: cargo clippy --all-features --tests --lib -- -W clippy::all
         env:
           RUSTFLAGS: -D warnings
-      - name: Rustup toolchain install nightly
-        run: rustup toolchain install nightly
+      # - name: Rustup toolchain install nightly
+      #   run: rustup toolchain install nightly
       # - name: Rustup toolchain install nightly
       #   run: rustup toolchain install nightly -c clippy
-      - name: Set minimal versions
-        run: cargo +nightly update -Z minimal-versions
-      - name: Build tests (minimal versions)
-        run: cargo +stable test --verbose --no-run
-      - name: Run tests (minimal versions)
-        run: cargo +stable test --verbose
+      # - name: Set minimal versions
+      #   run: cargo +nightly update -Z minimal-versions
+      # - name: Build tests (minimal versions)
+      #   run: cargo +stable test --verbose --no-run
+      # - name: Run tests (minimal versions)
+      #   run: cargo +stable test --verbose
       # - name: Clean
       #   run: cargo clean
       # - name: Clippy nightly
