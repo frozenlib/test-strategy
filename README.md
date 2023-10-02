@@ -33,7 +33,7 @@ Add this to your Cargo.toml:
 ```toml
 [dependencies]
 test-strategy = "0.3.1"
-proptest = "1.3.0"
+proptest = "1.3.1"
 ```
 
 ## Example
@@ -646,7 +646,7 @@ The value specifies the asynchronous runtime used for the test.
 ```toml
 [dev-dependencies]
 test-strategy = "0.3.1"
-proptest = "1.3.0"
+proptest = "1.3.1"
 tokio = { version = "1.28.1", features = ["rt-multi-thread"] }
 ```
 
@@ -657,7 +657,7 @@ use proptest::prop_assert;
 #[proptest(async = "tokio")]
 async fn my_test_async() {
     async { }.await;
-    prop_assert!(true);    
+    prop_assert!(true);
 }
 ```
 

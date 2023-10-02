@@ -28,7 +28,7 @@
 //! ```toml
 //! [dependencies]
 //! test-strategy = "0.3.1"
-//! proptest = "1.3.0"
+//! proptest = "1.3.1"
 //! ```
 //!
 //! ## Example
@@ -641,7 +641,7 @@
 //! ```toml
 //! [dev-dependencies]
 //! test-strategy = "0.3.1"
-//! proptest = "1.3.0"
+//! proptest = "1.3.1"
 //! tokio = { version = "1.28.1", features = ["rt-multi-thread"] }
 //! ```
 //!
