@@ -10,14 +10,14 @@ Each of these macros is an alternative to the following proptest's official macr
 
 | [test-strategy][]                          | [proptest][]                  | [proptest-derive][]                 |
 | ------------------------------------------ | ----------------------------- | ----------------------------------- |
-| [`#[derive(Arbitrary)]`](#derivearbitrary) |                               | [`#[derive(Arbitrary)]`][offical-a] |
-| [`#[proptest]`](#proptest)                 | [`proptest ! { }`][offical-m] |                                     |
+| [`#[derive(Arbitrary)]`](#derivearbitrary) |                               | [`#[derive(Arbitrary)]`][official-a] |
+| [`#[proptest]`](#proptest)                 | [`proptest ! { }`][official-m] |                                     |
 
 [test-strategy]: https://crates.io/crates/test-strategy
 [proptest]: https://crates.io/crates/proptest
 [proptest-derive]: https://crates.io/crates/proptest-derive
-[offical-m]: https://altsysrq.github.io/rustdoc/proptest/latest/proptest/macro.proptest.html
-[offical-a]: https://altsysrq.github.io/proptest-book/proptest-derive/modifiers.html
+[official-m]: https://altsysrq.github.io/rustdoc/proptest/latest/proptest/macro.proptest.html
+[official-a]: https://altsysrq.github.io/proptest-book/proptest-derive/modifiers.html
 
 The macros provided by this crate have the following advantages over the proptest's official macros.
 

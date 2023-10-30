@@ -769,8 +769,8 @@ impl StrategyBuilder {
                     let lets = self.let_group_vars(idx, true);
                     let mut filter_lets = TokenStream::new();
                     for expr in &exprs {
-                        for fitler in &expr.filters {
-                            filter_lets.extend(fitler.make_let_expr(&var, &ps, &lets));
+                        for filter in &expr.filters {
+                            filter_lets.extend(filter.make_let_expr(&var, &ps, &lets));
                         }
                     }
                     let exprs: Vec<_> = exprs.iter().map(|e| &e.expr).collect();
