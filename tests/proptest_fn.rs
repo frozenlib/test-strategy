@@ -1,5 +1,10 @@
+use ::std::result::Result;
+use std::{future::Future, rc::Rc};
+
+use ::proptest::test_runner::TestCaseError;
 use proptest::{prelude::ProptestConfig, prop_assert};
 use test_strategy::proptest;
+use tokio::task::yield_now;
 
 #[proptest]
 fn example(_x: u32, #[strategy(1..10u32)] y: u32, #[strategy(0..#y)] z: u32) {
@@ -71,4 +76,43 @@ async fn tokio_test_no_copy_arg(#[strategy("a+")] s: String) {
 #[proptest(async = "tokio")]
 async fn tokio_test_prop_assert() {
     prop_assert!(true);
+}
+
+#[should_panic]
+#[proptest(async = "tokio")]
+async fn tokio_test_prop_assert_false() {
+    prop_assert!(false);
+}
+
+fn tokio_ct(future: impl Future<Output = Result<(), TestCaseError>>) -> Result<(), TestCaseError> {
+    tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap()
+        .block_on(future)
+}
+
+#[proptest(async = tokio_ct)]
+async fn async_expr() {}
+
+#[proptest(async = tokio_ct)]
+async fn async_expr_non_send() {
+    let x = Rc::new(0);
+    yield_now().await;
+    drop(x);
+}
+
+#[proptest(async = tokio_ct)]
+async fn async_expr_no_copy_arg(#[strategy("a+")] s: String) {
+    prop_assert!(s.contains('a'));
+}
+
+#[proptest(async = tokio_ct)]
+async fn async_expr_test_prop_assert() {
+    prop_assert!(true);
+}
+
+#[should_panic]
+#[proptest(async = tokio_ct)]
+async fn async_expr_test_prop_assert_false() {
+    prop_assert!(false);
 }

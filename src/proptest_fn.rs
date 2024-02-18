@@ -2,8 +2,8 @@ use crate::syn_utils::{Arg, Args};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{
-    parse2, parse_quote, parse_str, spanned::Spanned, token, Block, Field, FieldMutability, FnArg,
-    Ident, ItemFn, LitStr, Pat, Result, Visibility,
+    parse2, parse_quote, parse_str, spanned::Spanned, token, Block, Expr, Field, FieldMutability,
+    FnArg, Ident, ItemFn, LitStr, Pat, Result, Visibility,
 };
 
 pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStream> {
@@ -130,16 +130,17 @@ impl TestFnArg {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Async {
     Tokio,
+    Expr(Expr),
 }
 impl Async {
     fn apply(&self, block: &Block) -> TokenStream {
         match self {
             Async::Tokio => {
                 quote! {
-                    let ret: ::core::result::Result<_, proptest::test_runner::TestCaseError> =
+                    let ret: ::core::result::Result<_, ::proptest::test_runner::TestCaseError> =
                         tokio::runtime::Runtime::new()
                             .unwrap()
                             .block_on(async move {
@@ -149,15 +150,29 @@ impl Async {
                     ret?;
                 }
             }
+            Async::Expr(expr) => {
+                quote! {
+                    let ret: ::core::result::Result<(), ::proptest::test_runner::TestCaseError> =
+                    (#expr)(async move {
+                            #block
+                            Ok(())
+                        });
+                    ret?;
+                }
+            }
         }
     }
 }
 impl syn::parse::Parse for Async {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let s: LitStr = input.parse()?;
-        match s.value().as_str() {
-            "tokio" => Ok(Async::Tokio),
-            _ => bail!(s.span(), "expected `tokio`."),
+        if input.peek(LitStr) {
+            let s: LitStr = input.parse()?;
+            match s.value().as_str() {
+                "tokio" => Ok(Async::Tokio),
+                _ => bail!(s.span(), "expected `tokio`."),
+            }
+        } else {
+            Ok(Async::Expr(input.parse()?))
         }
     }
 }
