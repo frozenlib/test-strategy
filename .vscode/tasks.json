@@ -75,7 +75,7 @@
         "clear": true
       },
       "dependsOn": [
-        "include doc"
+        "rustdoc-include"
       ],
     },
     {
@@ -140,7 +140,7 @@
         "clear": true
       },
       "dependsOn": [
-        "include doc"
+        "rustdoc-include"
       ],
     },
     {
@@ -262,14 +262,15 @@
     },
     {
       "type": "shell",
-      "label": "include doc",
-      "command": "include-doc",
+      "label": "rustdoc-include",
+      "command": "rustdoc-include",
       "args": [
+        "--root",
         "${workspaceFolder}"
       ],
       "problemMatcher": [
         {
-          "owner": "include-doc",
+          "owner": "rustdoc-include",
           "fileLocation": [
             "relative",
             "${workspaceFolder}"
