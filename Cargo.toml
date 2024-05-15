@@ -10,6 +10,7 @@ keywords = ["macro", "testing", "proptest"]
 categories = ["development-tools::testing"]
 description = "Procedural macro to easily write higher-order strategies in proptest."
 edition = "2021"
+rust-version = "1.65.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
