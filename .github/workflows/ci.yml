@@ -45,4 +45,4 @@ jobs:
       #     RUSTFLAGS: -D warnings
       - uses: taiki-e/install-action@cargo-hack
       - name: Check msrv
-        run: cargo hack check --rust-version --workspace --all-targets --ignore-private
+        run: cargo hack test --rust-version --workspace --all-targets --ignore-private
