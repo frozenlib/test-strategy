@@ -105,11 +105,20 @@ fn expr_for_enum(input: &DeriveInput, data: &DataEnum, bounds: &mut Bounds) -> R
         let args: ArbitraryArgsForFieldOrVariant = parse_from_attrs(&variant.attrs, "arbitrary")?;
         let mut weight = None;
         for attr in &variant.attrs {
-            if attr.path().is_ident("weight") {
+            let Some(ident) = attr.path().get_ident() else {
+                continue;
+            };
+            if ident == "weight" {
                 if weight.is_some() {
                     bail!(attr.span(), "`#[weight]` can specify only once.");
                 }
                 weight = Some(attr.parse_args::<WeightArg>()?);
+            }
+            if ident == "any" || ident == "strategy" || ident == "map" || ident == "by_ref" {
+                bail!(
+                    attr.span(),
+                    "`#[{ident}]` cannot be specified for a variant. Consider specifying it for a field instead."
+                );
             }
         }
         let weight = if let Some(arg) = weight {

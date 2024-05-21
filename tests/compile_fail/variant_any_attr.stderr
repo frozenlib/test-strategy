@@ -1,0 +1,5 @@
+error: `#[any]` cannot be specified for a variant. Consider specifying it for a field instead.
+ --> tests/compile_fail/variant_any_attr.rs:4:5
+  |
+4 |     #[any]
+  |     ^

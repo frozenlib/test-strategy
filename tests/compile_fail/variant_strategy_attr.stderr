@@ -1,0 +1,5 @@
+error: `#[strategy]` cannot be specified for a variant. Consider specifying it for a field instead.
+ --> tests/compile_fail/variant_strategy_attr.rs:4:5
+  |
+4 |     #[strategy(0..10usize)]
+  |     ^
