@@ -10,12 +10,14 @@ use syn::{
 pub enum Bound {
     Type(Type),
     Predicate(WherePredicate),
-    Default(Token![..]),
+    Default { _dotdot: Token![..] },
 }
 impl Parse for Bound {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.peek(Token![..]) {
-            return Ok(Self::Default(input.parse()?));
+            return Ok(Self::Default {
+                _dotdot: input.parse()?,
+            });
         }
         let fork = input.fork();
         match fork.parse() {
@@ -62,7 +64,7 @@ impl Bounds {
         match bound {
             Bound::Type(ty) => self.ty.push(ty),
             Bound::Predicate(pred) => self.pred.push(pred),
-            Bound::Default(_) => self.can_extend = true,
+            Bound::Default { .. } => self.can_extend = true,
         }
     }
     pub fn child(&mut self, bound: Option<Vec<Bound>>) -> BoundsChild {

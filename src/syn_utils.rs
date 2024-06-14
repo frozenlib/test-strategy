@@ -40,7 +40,7 @@ pub fn into_macro_output(input: Result<TokenStream>) -> proc_macro::TokenStream 
 }
 
 pub struct Parenthesized<T> {
-    pub paren_token: Option<Paren>,
+    pub _paren_token: Option<Paren>,
     pub content: T,
 }
 impl<T: Parse> Parse for Parenthesized<T> {
@@ -49,7 +49,7 @@ impl<T: Parse> Parse for Parenthesized<T> {
         let paren_token = Some(parenthesized!(content in input));
         let content = content.parse()?;
         Ok(Self {
-            paren_token,
+            _paren_token: paren_token,
             content,
         })
     }
