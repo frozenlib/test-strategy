@@ -290,6 +290,18 @@
     },
     {
       "type": "shell",
+      "label": "check msrv",
+      "command": "cargo hack test --rust-version --workspace --all-targets --ignore-private",
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+    },
+    {
+      "type": "shell",
       "label": "rustdoc-include",
       "command": "rustdoc-include",
       "args": [
