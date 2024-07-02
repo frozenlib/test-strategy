@@ -519,6 +519,59 @@ fn filter_struct_field_fn() {
 }
 
 #[test]
+fn filter_struct_field_2() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    struct TestStruct {
+        #[strategy(1..10u32)]
+        #[filter(is_even)]
+        x: u32,
+
+        #[strategy(1..10u32)]
+        #[filter(is_odd)]
+        y: u32,
+    }
+    fn is_even(value: &u32) -> bool {
+        value % 2 == 0
+    }
+    fn is_odd(value: &u32) -> bool {
+        value % 2 != 0
+    }
+    assert_arbitrary(
+        (
+            (1..10u32).prop_filter("is_even", is_even),
+            (1..10u32).prop_filter("is_odd", is_odd),
+        )
+            .prop_map(|(x, y)| TestStruct { x, y }),
+    );
+}
+
+#[test]
+fn filter_struct_filed_independent_and_dependent() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    struct TestStruct {
+        #[strategy(0..10u32)]
+        #[filter(|x| x % 3 == 0)]
+        a: u32,
+
+        #[strategy(0..10u32)]
+        #[filter(|x| x % 3 == 1)]
+        b: u32,
+
+        #[strategy(0..=#b)]
+        #[filter(|x| x % 3 == 2)]
+        c: u32,
+    }
+
+    let a = (0..10u32).prop_filter("", |&a| a % 3 == 0);
+    let bc = (0..10u32)
+        .prop_filter("", |&b| b % 3 == 1)
+        .prop_flat_map(|b| (Just(b), (0..=b)))
+        .prop_filter("", |(_b, c)| c % 3 == 2);
+    let abc = (a, bc).prop_map(|(a, (b, c))| TestStruct { a, b, c });
+    assert_arbitrary(abc);
+}
+
+#[test]
 fn filter_struct_field_fn_dependency() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct {
@@ -1593,7 +1646,7 @@ fn index() {
 }
 
 #[test]
-fn filter_with_strategy_and_map() {
+fn filter_with_strategy_and_map_0() {
     use proptest::sample::Index;
 
     #[derive(Arbitrary, Debug, PartialEq, Clone)]
@@ -1610,19 +1663,42 @@ fn filter_with_strategy_and_map() {
     }
 
     let s = (10..100usize, any::<Index>())
-        .prop_flat_map(|x| {
-            (
-                0..x.0,
-                Just(x.1.index(x.0)).prop_filter("", |y| y % 2 == 0),
-                Just(x.0),
-                Just(x.1),
-            )
-        })
+        .prop_flat_map(|x| (0..x.0, Just(x.1.index(x.0)), Just(x.0), Just(x.1)))
         .prop_map(|x| X {
             a: x.2,
             x: x.0,
             y: x.1,
-        });
+        })
+        .prop_filter("", |x| x.y % 2 == 0);
+
+    assert_arbitrary(s);
+}
+
+#[test]
+fn filter_with_strategy_and_map_1() {
+    use proptest::sample::Index;
+
+    #[derive(Arbitrary, Debug, PartialEq, Clone)]
+    struct X {
+        #[strategy(10..100usize)]
+        a: usize,
+
+        #[strategy(0..#a)]
+        x: usize,
+
+        #[map(|i: Index|i.index(#a))]
+        #[filter(#y % 2 == 1)]
+        y: usize,
+    }
+
+    let s = (10..100usize, any::<Index>())
+        .prop_flat_map(|x| (0..x.0, Just(x.1.index(x.0)), Just(x.0), Just(x.1)))
+        .prop_map(|x| X {
+            a: x.2,
+            x: x.0,
+            y: x.1,
+        })
+        .prop_filter("", |x| x.y % 2 == 1);
 
     assert_arbitrary(s);
 }

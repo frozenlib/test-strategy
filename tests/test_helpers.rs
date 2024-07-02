@@ -9,10 +9,12 @@ enum Op {
     Complicate,
 }
 
+#[track_caller]
 pub fn assert_arbitrary<T: Arbitrary + PartialEq>(e: impl Strategy<Value = T>) {
     assert_eq_strategy(any::<T>(), e);
 }
 
+#[track_caller]
 pub fn assert_eq_strategy<T: Debug + PartialEq>(
     l: impl Strategy<Value = T>,
     r: impl Strategy<Value = T>,
@@ -25,6 +27,7 @@ pub fn assert_eq_strategy<T: Debug + PartialEq>(
     assert_eq_strategy_ops(l, r, ops)
 }
 
+#[track_caller]
 fn assert_eq_strategy_ops<T: Debug + PartialEq>(
     l: impl Strategy<Value = T>,
     r: impl Strategy<Value = T>,
@@ -33,8 +36,12 @@ fn assert_eq_strategy_ops<T: Debug + PartialEq>(
     let mut l_runner = TestRunner::deterministic();
     let mut r_runner = TestRunner::deterministic();
 
-    let mut l_tree = l.new_tree(&mut l_runner).unwrap();
-    let mut r_tree = r.new_tree(&mut r_runner).unwrap();
+    let mut r_tree = r
+        .new_tree(&mut r_runner)
+        .unwrap_or_else(|e| panic!("r.new_tree failed: {:?}", e));
+    let mut l_tree = l
+        .new_tree(&mut l_runner)
+        .unwrap_or_else(|e| panic!("l.new_tree failed: {:?}", e));
 
     let mut step = 0;
     for op in ops {

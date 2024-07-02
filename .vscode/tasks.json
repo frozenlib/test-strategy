@@ -80,6 +80,18 @@
     },
     {
       "type": "shell",
+      "label": "cargo test 32bit windows",
+      "command": "cargo test --target-dir ./target/i686-debug --target i686-pc-windows-msvc ",
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
+    },
+    {
+      "type": "shell",
       "label": "cargo test nightly",
       "command": "cargo",
       "args": [
@@ -142,6 +154,22 @@
       "dependsOn": [
         "rustdoc-include"
       ],
+    },
+    {
+      "type": "shell",
+      "label": "cargo llvm-cov open",
+      "command": "cargo",
+      "args": [
+        "llvm-cov",
+        "--open",
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      },
     },
     {
       "type": "shell",

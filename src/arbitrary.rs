@@ -769,35 +769,46 @@ impl StrategyBuilder {
                 }
                 let inputs = cons_tuple(&inputs);
                 let ps = cons_tuple(&ps);
+                let ps_next = self.pat_group_next_vars(idx);
+                let var = Ident::new("_s", Span::call_site());
+                let lets = self.let_group_vars(idx, true);
+                let mut filter_lets = TokenStream::new();
                 for &group_item_next in &self.items[idx].group_items_next {
-                    exprs.push(self.strategy_expr(group_item_next));
+                    let mut expr = self.strategy_expr(group_item_next);
+                    for filter in &expr.filters {
+                        filter_lets.extend(filter.make_let_expr(&var, &ps_next, &lets));
+                    }
+                    expr.filters.clear();
+                    exprs.push(expr);
                 }
                 let ident = self.items[idx].strategy_ident();
                 let exprs = if exprs.iter().all(|e| e.is_jast) {
-                    let var = Ident::new("_s", Span::call_site());
-                    let lets = self.let_group_vars(idx, true);
-                    let mut filter_lets = TokenStream::new();
-                    for expr in &exprs {
-                        for filter in &expr.filters {
-                            filter_lets.extend(filter.make_let_expr(&var, &ps, &lets));
-                        }
-                    }
                     let exprs: Vec<_> = exprs.iter().map(|e| &e.expr).collect();
                     let exprs = cons_tuple(&exprs);
                     quote! {
                         {
-                            let #var = {
+                            let #var = proptest::strategy::Strategy::prop_map((#inputs), {
                                 #[allow(unused_variables)]
                                 let args = <std::rc::Rc<_> as std::clone::Clone>::clone(&args);
-                                proptest::strategy::Strategy::prop_map((#inputs), move |#ps| #exprs)
-                            };
+                                move |#ps| #exprs
+                            });
                             #filter_lets
                             #var
                         }
                     }
                 } else {
                     let exprs = cons_tuple(&exprs);
-                    quote!(proptest::strategy::Strategy::prop_flat_map(#inputs, move |#ps| #exprs))
+                    quote! {
+                        {
+                            let #var = proptest::strategy::Strategy::prop_flat_map(#inputs, {
+                                #[allow(unused_variables)]
+                                let args = <std::rc::Rc<_> as std::clone::Clone>::clone(&args);
+                                move |#ps| #exprs
+                            });
+                            #filter_lets
+                            #var
+                        }
+                    }
                 };
                 self.ts.extend(quote! {
                     let #ident = {
@@ -950,6 +961,9 @@ impl StrategyBuilder {
     fn is_group(&self, idx: usize) -> bool {
         self.items[idx].group == Some(idx)
     }
+    fn is_group_next(&self, idx: usize) -> bool {
+        self.items[idx].group_next == Some(idx)
+    }
     fn is_group_next_new(&self, idx: usize) -> bool {
         let item = &self.items[idx];
         item.group_next == Some(idx) && item.group_items_next != item.group_items
@@ -958,6 +972,14 @@ impl StrategyBuilder {
         assert!(self.is_group(idx));
         let mut ps = Vec::new();
         for &idx in &self.items[idx].group_items {
+            ps.push(self.items[idx].key.to_dummy_ident());
+        }
+        cons_tuple(&ps)
+    }
+    fn pat_group_next_vars(&self, idx: usize) -> TokenStream {
+        assert!(self.is_group_next(idx));
+        let mut ps = Vec::new();
+        for &idx in &self.items[idx].group_items_next {
             ps.push(self.items[idx].key.to_dummy_ident());
         }
         cons_tuple(&ps)
