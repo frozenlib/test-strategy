@@ -3,10 +3,10 @@
 //!
 //! Each of these macros is an alternative to the following proptest's official macros.
 //!
-//! | [test-strategy][]                          | [proptest][]                  | [proptest-derive][]                 |
-//! | ------------------------------------------ | ----------------------------- | ----------------------------------- |
-//! | [`#[derive(Arbitrary)]`](#derivearbitrary) |                               | [`#[derive(Arbitrary)]`][official-a] |
-//! | [`#[proptest]`](#proptest)                 | [`proptest ! { }`][official-m] |                                     |
+//! | [test-strategy][]                          | [proptest][]                   | [proptest-derive][]                  |
+//! | ------------------------------------------ | ------------------------------ | ------------------------------------ |
+//! | [`#[derive(Arbitrary)]`](#derivearbitrary) |                                | [`#[derive(Arbitrary)]`][official-a] |
+//! | [`#[proptest]`](#proptest)                 | [`proptest ! { }`][official-m] |                                      |
 //!
 //! [test-strategy]: https://crates.io/crates/test-strategy
 //! [proptest]: https://crates.io/crates/proptest
@@ -27,8 +27,8 @@
 //!
 //! ```toml
 //! [dependencies]
-//! test-strategy = "0.3.1"
-//! proptest = "1.3.1"
+//! test-strategy = "0.4.0"
+//! proptest = "1.5.0"
 //! ```
 //!
 //! ## Example
@@ -640,9 +640,9 @@
 //!
 //! ```toml
 //! [dev-dependencies]
-//! test-strategy = "0.3.1"
-//! proptest = "1.3.1"
-//! tokio = { version = "1.28.1", features = ["rt-multi-thread"] }
+//! test-strategy = "0.4.0"
+//! proptest = "1.5.0"
+//! tokio = { version = "1.38.0", features = ["rt-multi-thread"] }
 //! ```
 //!
 //! ```rust
