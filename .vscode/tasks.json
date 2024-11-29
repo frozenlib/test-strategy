@@ -219,14 +219,10 @@
     {
       "type": "shell",
       "label": "cargo fix & fmt",
-      "command": "cargo fix && cargo fmt",
+      "command": "cargo fix --all && cargo clippy --fix --allow-dirty --all && cargo fmt --all",
       "problemMatcher": [
         "$rustc"
       ],
-      "presentation": {
-        "panel": "dedicated",
-        "clear": true,
-      }
     },
     {
       "type": "shell",
