@@ -597,7 +597,7 @@
 //! }
 //! ```
 //!
-//! You can change the configuration of a property test by setting the argument of `#[proptest]` attribute to a value of `proptest::prelude::ProptestConfig` type.
+//! You can change the configuration of a property test by setting the argument of `#[proptest]` attribute to a value of [`proptest::prelude::ProptestConfig`](https://docs.rs/proptest/latest/proptest/prelude/index.html#reexport.ProptestConfig) type.
 //!
 //! ```rust
 //! use proptest::prelude::ProptestConfig;

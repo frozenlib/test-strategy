@@ -602,12 +602,11 @@ fn my_test2(#[strategy(10..20)] _input: i32) {
 }
 ```
 
-You can change the configuration of a property test by setting the argument of `#[proptest]` attribute to a value of `proptest::prelude::ProptestConfig` type.
+You can change the configuration of a property test by setting the argument of `#[proptest]` attribute to a value of [`proptest::prelude::ProptestConfig`](https://docs.rs/proptest/latest/proptest/prelude/index.html#reexport.ProptestConfig) type.
 
 ```rust
 use proptest::prelude::ProptestConfig;
 use test_strategy::proptest;
-
 
 #[proptest(ProptestConfig { cases : 1000, ..ProptestConfig::default() })]
 fn my_test_with_config(_input: i32) {
