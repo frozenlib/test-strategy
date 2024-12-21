@@ -28,7 +28,7 @@
 //! ```toml
 //! [dependencies]
 //! test-strategy = "0.4.0"
-//! proptest = "1.5.0"
+//! proptest = "1.6.0"
 //! ```
 //!
 //! ## Example
@@ -603,7 +603,6 @@
 //! use proptest::prelude::ProptestConfig;
 //! use test_strategy::proptest;
 //!
-//!
 //! #[proptest(ProptestConfig { cases : 1000, ..ProptestConfig::default() })]
 //! fn my_test_with_config(_input: i32) {
 //!     // ...
@@ -641,7 +640,7 @@
 //! ```toml
 //! [dev-dependencies]
 //! test-strategy = "0.4.0"
-//! proptest = "1.5.0"
+//! proptest = "1.6.0"
 //! tokio = { version = "1.38.0", features = ["rt-multi-thread"] }
 //! ```
 //!
