@@ -116,3 +116,64 @@ async fn async_expr_test_prop_assert() {
 async fn async_expr_test_prop_assert_false() {
     prop_assert!(false);
 }
+
+struct NotImplError;
+
+#[derive(Debug)]
+struct CustomError(#[allow(dead_code)] TestCaseError);
+
+impl std::error::Error for CustomError {}
+impl std::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CustomError")
+    }
+}
+impl From<TestCaseError> for CustomError {
+    fn from(e: TestCaseError) -> Self {
+        CustomError(e)
+    }
+}
+impl From<NotImplError> for CustomError {
+    fn from(_: NotImplError) -> Self {
+        CustomError(TestCaseError::fail("Custom"))
+    }
+}
+
+#[proptest]
+fn custom_error_ok(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    assert!(x < 10);
+    not_impl_error_ok()?;
+    Ok(())
+}
+
+#[proptest]
+#[should_panic]
+fn custom_error_err(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    assert!(x < 10);
+    not_impl_error_err()?;
+    Ok(())
+}
+
+#[proptest(async = "tokio")]
+async fn custom_error_async_ok(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    assert!(x < 10);
+    not_impl_error_ok()?;
+    yield_now().await;
+    Ok(())
+}
+
+#[proptest(async = "tokio")]
+#[should_panic]
+async fn custom_error_async_err(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    assert!(x < 10);
+    not_impl_error_err()?;
+    yield_now().await;
+    Ok(())
+}
+
+fn not_impl_error_ok() -> Result<(), NotImplError> {
+    Ok(())
+}
+fn not_impl_error_err() -> Result<(), NotImplError> {
+    Err(NotImplError)
+}

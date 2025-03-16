@@ -1,9 +1,11 @@
+use std::mem::replace;
+
 use crate::syn_utils::{Arg, Args};
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
     parse2, parse_quote, parse_str, spanned::Spanned, token, Block, Expr, Field, FieldMutability,
-    FnArg, Ident, ItemFn, LitStr, Pat, Result, Visibility,
+    FnArg, Ident, ItemFn, LitStr, Pat, Result, ReturnType, Visibility,
 };
 
 pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStream> {
@@ -35,11 +37,23 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
     if item_fn.sig.asyncness.is_none() {
         attr_args.r#async = None;
     }
+    let output = replace(&mut item_fn.sig.output, ReturnType::Default);
     let block = if let Some(a) = attr_args.r#async {
         item_fn.sig.asyncness = None;
-        a.apply(block)
+        a.apply(block, output)
     } else {
-        quote!(#block)
+        match output {
+            ReturnType::Default => quote!(#block),
+            ReturnType::Type(_, ty) => {
+                let f = Ident::new("__test_body", Span::mixed_site());
+                quote!({
+                    let #f = move || -> #ty {
+                        #block
+                    };
+                    ::std::result::Result::map_err(#f(), ::std::convert::Into::<TestCaseError>::into)?;
+                })
+            }
+        }
     };
     let block = quote! {
         {
@@ -136,28 +150,43 @@ enum Async {
     Expr(Expr),
 }
 impl Async {
-    fn apply(&self, block: &Block) -> TokenStream {
+    fn apply(&self, block: &Block, output: ReturnType) -> TokenStream {
+        let body;
+        let output_type;
+        let ret_expr;
+        match output {
+            ReturnType::Default => {
+                body = quote! {
+                    #block
+                    Ok(())
+                };
+                output_type =
+                    quote!(::core::result::Result<_, ::proptest::test_runner::TestCaseError> );
+                ret_expr = quote! { ret? };
+            }
+            ReturnType::Type(_, ty) => {
+                body = quote! { #block };
+                output_type = quote!(#ty);
+                ret_expr = quote! {
+                    ::std::result::Result::map_err(ret, ::std::convert::Into::<TestCaseError>::into)?
+                };
+            }
+        }
         match self {
             Async::Tokio => {
                 quote! {
-                    let ret: ::core::result::Result<_, ::proptest::test_runner::TestCaseError> =
+                    let ret: #output_type =
                         tokio::runtime::Runtime::new()
                             .unwrap()
-                            .block_on(async move {
-                                #block
-                                Ok(())
-                            });
-                    ret?;
+                            .block_on(async move { #body });
+                    #ret_expr;
                 }
             }
             Async::Expr(expr) => {
                 quote! {
-                    let ret: ::core::result::Result<(), ::proptest::test_runner::TestCaseError> =
-                    (#expr)(async move {
-                            #block
-                            Ok(())
-                        });
-                    ret?;
+                    let ret: #output_type =
+                    (#expr)(async move { #body });
+                    #ret_expr;
                 }
             }
         }
