@@ -123,6 +123,12 @@ struct NotImplError1;
 #[derive(Debug)]
 struct CustomError(#[allow(dead_code)] TestCaseError);
 
+impl CustomError {
+    fn new() -> Self {
+        CustomError(TestCaseError::fail("Custom"))
+    }
+}
+
 impl std::error::Error for CustomError {}
 impl std::fmt::Display for CustomError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -145,9 +151,9 @@ impl From<NotImplError1> for CustomError {
     }
 }
 
-macro_rules! prop_assert2 {
+macro_rules! prop_assert_custom {
     ($cond:expr) => {
-        prop_assert2!($cond, concat!("assertion failed: ", stringify!($cond)))
+        prop_assert_custom!($cond, concat!("assertion failed: ", stringify!($cond)))
     };
     ($cond:expr, $($fmt:tt)*) => {
         if !$cond {
@@ -160,48 +166,47 @@ macro_rules! prop_assert2 {
 
 #[proptest]
 fn custom_error_ok(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    prop_assert2!(x < 10);
+    prop_assert_custom!(x < 10);
     not_impl_error_ok()?;
+    Ok(())
+}
+#[proptest(async = "tokio")]
+async fn custom_error_ok_async(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    prop_assert_custom!(x < 10);
+    not_impl_error_ok()?;
+    yield_now().await;
     Ok(())
 }
 
 #[should_panic]
 #[proptest]
-fn custom_error_ok_prop_assesrt_fail(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    prop_assert2!(x >= 10);
+fn custom_error_prop_assesrt_fail(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    prop_assert_custom!(x >= 10);
     Ok(())
 }
 
 #[proptest]
 #[should_panic]
 fn custom_error_err(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    prop_assert2!(x < 10);
+    prop_assert_custom!(x < 10);
     not_impl_error_err()?;
-    Ok(())
-}
-
-#[proptest]
-fn custom_error_ok_2(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    prop_assert2!(x < 10);
-    not_impl_error_ok()?;
-    not_impl_error_ok_1()?;
-    Ok(())
-}
-
-#[proptest(async = "tokio")]
-async fn custom_error_async_ok(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    prop_assert2!(x < 10);
-    not_impl_error_ok()?;
-    yield_now().await;
     Ok(())
 }
 
 #[proptest(async = "tokio")]
 #[should_panic]
-async fn custom_error_async_err(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    prop_assert2!(x < 10);
+async fn custom_error_err_async(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    prop_assert_custom!(x < 10);
     not_impl_error_err()?;
     yield_now().await;
+    Ok(())
+}
+
+#[proptest]
+fn custom_error_ok_2(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    prop_assert_custom!(x < 10);
+    not_impl_error_ok()?;
+    not_impl_error_ok_1()?;
     Ok(())
 }
 
@@ -214,4 +219,75 @@ fn not_impl_error_err() -> Result<(), NotImplError0> {
 
 fn not_impl_error_ok_1() -> Result<(), NotImplError1> {
     Ok(())
+}
+
+macro_rules! prop_assert_anyhow {
+    ($cond:expr) => {
+        prop_assert_anyhow!($cond, concat!("assertion failed: ", stringify!($cond)))
+    };
+    ($cond:expr, $($fmt:tt)*) => {
+        if !$cond {
+            anyhow::bail!("{} at {}:{}", format!($($fmt)*), file!(), line!());
+        }
+    };
+}
+
+#[proptest]
+fn anyhow_result_ok(#[strategy(1..10u8)] x: u8) -> anyhow::Result<()> {
+    prop_assert_anyhow!(x < 10);
+    Ok(())
+}
+
+#[proptest(async = "tokio")]
+async fn anyhow_result_ok_async(#[strategy(1..10u8)] x: u8) -> anyhow::Result<()> {
+    prop_assert_anyhow!(x < 10);
+    yield_now().await;
+    Ok(())
+}
+
+#[proptest]
+#[should_panic]
+fn anyhow_result_prop_assert_fail(#[strategy(1..10u8)] x: u8) -> anyhow::Result<()> {
+    prop_assert_anyhow!(x >= 10);
+    Ok(())
+}
+
+#[proptest(async = "tokio")]
+#[should_panic]
+async fn anyhow_result_prop_assert_fail_async(#[strategy(1..10u8)] x: u8) -> anyhow::Result<()> {
+    prop_assert_anyhow!(x >= 10);
+    yield_now().await;
+    Ok(())
+}
+
+#[proptest]
+#[should_panic]
+fn anyhow_result_err(#[strategy(1..10u8)] x: u8) -> anyhow::Result<()> {
+    prop_assert_anyhow!(x < 10);
+    Err(CustomError::new())?;
+    Ok(())
+}
+
+#[proptest(async = "tokio")]
+#[should_panic]
+async fn anyhow_result_err_async(#[strategy(1..10u8)] x: u8) -> anyhow::Result<()> {
+    prop_assert_anyhow!(x < 10);
+    Err(CustomError::new())?;
+    yield_now().await;
+    Ok(())
+}
+
+#[proptest]
+#[should_panic]
+fn anyhow_result_bail(#[strategy(1..10u8)] x: u8) -> anyhow::Result<()> {
+    prop_assert_anyhow!(x < 10);
+    anyhow::bail!("error");
+}
+
+#[proptest(async = "tokio")]
+#[should_panic]
+async fn anyhow_result_bail_async(#[strategy(1..10u8)] x: u8) -> anyhow::Result<()> {
+    prop_assert_anyhow!(x < 10);
+    yield_now().await;
+    anyhow::bail!("error");
 }

@@ -50,7 +50,8 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
                     let #f = move || -> #ty {
                         #block
                     };
-                    ::std::result::Result::map_err(#f(), ::std::convert::Into::<TestCaseError>::into)?;
+                    ::std::result::Result::map_err(#f(),
+                        |e| ::proptest::test_runner::TestCaseError::fail(::std::string::ToString::to_string(&e)))?;
                 })
             }
         }
@@ -168,7 +169,8 @@ impl Async {
                 body = quote! { #block };
                 output_type = quote!(#ty);
                 ret_expr = quote! {
-                    ::std::result::Result::map_err(ret, ::std::convert::Into::<TestCaseError>::into)?
+                    ::std::result::Result::map_err(ret,
+                        |e| ::proptest::test_runner::TestCaseError::fail(::std::string::ToString::to_string(&e)))?
                 };
             }
         }
