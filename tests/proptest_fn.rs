@@ -117,7 +117,8 @@ async fn async_expr_test_prop_assert_false() {
     prop_assert!(false);
 }
 
-struct NotImplError;
+struct NotImplError0;
+struct NotImplError1;
 
 #[derive(Debug)]
 struct CustomError(#[allow(dead_code)] TestCaseError);
@@ -133,30 +134,63 @@ impl From<TestCaseError> for CustomError {
         CustomError(e)
     }
 }
-impl From<NotImplError> for CustomError {
-    fn from(_: NotImplError) -> Self {
+impl From<NotImplError0> for CustomError {
+    fn from(_: NotImplError0) -> Self {
+        CustomError(TestCaseError::fail("Custom"))
+    }
+}
+impl From<NotImplError1> for CustomError {
+    fn from(_: NotImplError1) -> Self {
         CustomError(TestCaseError::fail("Custom"))
     }
 }
 
+macro_rules! prop_assert2 {
+    ($cond:expr) => {
+        prop_assert2!($cond, concat!("assertion failed: ", stringify!($cond)))
+    };
+    ($cond:expr, $($fmt:tt)*) => {
+        if !$cond {
+            let message = format!($($fmt)*);
+            let message = format!("{} at {}:{}", message, file!(), line!());
+            ::core::result::Result::Err(::proptest::test_runner::TestCaseError::fail(message))?;
+        }
+    };
+}
+
 #[proptest]
 fn custom_error_ok(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    assert!(x < 10);
+    prop_assert2!(x < 10);
     not_impl_error_ok()?;
+    Ok(())
+}
+
+#[should_panic]
+#[proptest]
+fn custom_error_ok_prop_assesrt_fail(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    prop_assert2!(x >= 10);
     Ok(())
 }
 
 #[proptest]
 #[should_panic]
 fn custom_error_err(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    assert!(x < 10);
+    prop_assert2!(x < 10);
     not_impl_error_err()?;
+    Ok(())
+}
+
+#[proptest]
+fn custom_error_ok_2(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
+    prop_assert2!(x < 10);
+    not_impl_error_ok()?;
+    not_impl_error_ok_1()?;
     Ok(())
 }
 
 #[proptest(async = "tokio")]
 async fn custom_error_async_ok(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    assert!(x < 10);
+    prop_assert2!(x < 10);
     not_impl_error_ok()?;
     yield_now().await;
     Ok(())
@@ -165,15 +199,19 @@ async fn custom_error_async_ok(#[strategy(1..10u8)] x: u8) -> Result<(), CustomE
 #[proptest(async = "tokio")]
 #[should_panic]
 async fn custom_error_async_err(#[strategy(1..10u8)] x: u8) -> Result<(), CustomError> {
-    assert!(x < 10);
+    prop_assert2!(x < 10);
     not_impl_error_err()?;
     yield_now().await;
     Ok(())
 }
 
-fn not_impl_error_ok() -> Result<(), NotImplError> {
+fn not_impl_error_ok() -> Result<(), NotImplError0> {
     Ok(())
 }
-fn not_impl_error_err() -> Result<(), NotImplError> {
-    Err(NotImplError)
+fn not_impl_error_err() -> Result<(), NotImplError0> {
+    Err(NotImplError0)
+}
+
+fn not_impl_error_ok_1() -> Result<(), NotImplError1> {
+    Ok(())
 }
