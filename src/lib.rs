@@ -27,7 +27,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! test-strategy = "0.4.0"
+//! test-strategy = "0.4.1"
 //! proptest = "1.6.0"
 //! ```
 //!
@@ -639,7 +639,7 @@
 //!
 //! ```toml
 //! [dev-dependencies]
-//! test-strategy = "0.4.0"
+//! test-strategy = "0.4.1"
 //! proptest = "1.6.0"
 //! tokio = { version = "1.38.0", features = ["rt-multi-thread"] }
 //! ```
