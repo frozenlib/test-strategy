@@ -28,3 +28,4 @@ proptest = "1.6.0"
 trybuild = "1.0.96"
 tokio = { version = "1.38.0", features = ["rt-multi-thread"] }
 anyhow = "1.0.97"
+googletest = "0.14.0"

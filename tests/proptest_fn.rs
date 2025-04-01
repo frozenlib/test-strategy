@@ -6,6 +6,11 @@ use proptest::{prelude::ProptestConfig, prop_assert};
 use test_strategy::proptest;
 use tokio::task::yield_now;
 
+use googletest::expect_that;
+use googletest::gtest;
+use googletest::matchers::*;
+use googletest::verify_that;
+
 #[proptest]
 fn example(_x: u32, #[strategy(1..10u32)] y: u32, #[strategy(0..#y)] z: u32) {
     assert!(1 <= y);
@@ -290,4 +295,11 @@ async fn anyhow_result_bail_async(#[strategy(1..10u8)] x: u8) -> anyhow::Result<
     prop_assert_anyhow!(x < 10);
     yield_now().await;
     anyhow::bail!("error");
+}
+
+#[proptest]
+#[gtest]
+fn googletest_result(#[strategy(1..10u8)] x: u8) -> googletest::Result<()> {
+    expect_that!(x, ge(1));
+    verify_that!(x, lt(10))
 }
