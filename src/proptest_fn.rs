@@ -4,9 +4,40 @@ use crate::syn_utils::{Arg, Args};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
-    parse2, parse_quote, parse_str, spanned::Spanned, token, Block, Expr, Field, FieldMutability,
-    FnArg, Ident, ItemFn, LitStr, Pat, Result, ReturnType, Visibility,
+    parse2, parse_quote, parse_str, spanned::Spanned, token, Attribute, Block, Expr, Field,
+    FieldMutability, FnArg, Ident, ItemFn, LitStr, Pat, Result, ReturnType, Visibility,
 };
+
+// Check whether given attribute is a test attribute of forms:
+// * `#[test]`
+// * `#[core::prelude::*::test]` or `#[::core::prelude::*::test]`
+// * `#[std::prelude::*::test]` or `#[::std::prelude::*::test]`
+fn is_test_attribute(attr: &Attribute) -> bool {
+    let path = match &attr.meta {
+        syn::Meta::Path(path) => path,
+        _ => return false,
+    };
+    const CANDIDATES_LEN: usize = 4;
+
+    let candidates: [[&str; CANDIDATES_LEN]; 2] = [
+        ["core", "prelude", "*", "test"],
+        ["std", "prelude", "*", "test"],
+    ];
+    if path.leading_colon.is_none()
+        && path.segments.len() == 1
+        && path.segments[0].arguments.is_none()
+        && path.segments[0].ident == "test"
+    {
+        return true;
+    } else if path.segments.len() != candidates[0].len() {
+        return false;
+    }
+    candidates.into_iter().any(|segments| {
+        path.segments.iter().zip(segments).all(|(segment, path)| {
+            segment.arguments.is_none() && (path == "*" || segment.ident == path)
+        })
+    })
+}
 
 pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStream> {
     let mut attr_args = None;
@@ -64,6 +95,12 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
     };
     item_fn.sig.inputs = parse_quote! { input: #args_type_ident };
     item_fn.block = Box::new(parse2(block)?);
+    if !item_fn.attrs.iter().any(is_test_attribute) {
+        let test_attr: Attribute = parse_quote! {
+            #[::core::prelude::v1::test]
+        };
+        item_fn.attrs.push(test_attr);
+    }
     let args_fields = args.iter().map(|arg| &arg.field);
     let config = to_proptest_config(config_args);
     let ts = quote! {
@@ -75,7 +112,6 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
         #[cfg(test)]
         proptest::proptest! {
             #config
-            #[test]
             #item_fn
         }
     };
