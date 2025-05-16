@@ -2,4 +2,4 @@ error[E0614]: type `u32` cannot be dereferenced
  --> tests/compile_fail/sharp_val_span.rs:8:19
   |
 8 |     #[strategy(0..*#x)]
-  |                   ^^^
+  |                   ^^^ can't be dereferenced
