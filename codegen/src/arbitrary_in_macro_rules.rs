@@ -15,11 +15,8 @@ pub fn build() -> Result<()> {
 }
 
 fn transform(file: &mut File) -> Result<()> {
-    // 使用されているトレイトの組み合わせを収集
     let mut trait_combinations = std::collections::BTreeSet::new();
     collect_trait_combinations(file, &mut trait_combinations);
-
-    // 必要なヘルパマクロを追加
     add_helper_macros(file, &trait_combinations);
 
     for item in &mut file.items {
@@ -58,14 +55,11 @@ fn collect_from_function(
     combinations: &mut std::collections::BTreeSet<Vec<String>>,
 ) {
     for stmt in &fn_item.block.stmts {
-        match stmt {
-            Stmt::Item(item @ (Item::Struct(_) | Item::Enum(_))) => {
-                if has_derive_arbitrary_attr(&item.attrs()) {
-                    let traits = extract_derive_traits(&item.attrs());
-                    combinations.insert(traits);
-                }
+        if let Stmt::Item(item @ (Item::Struct(_) | Item::Enum(_))) = stmt {
+            if has_derive_arbitrary_attr(item.attrs()) {
+                let traits = extract_derive_traits(item.attrs());
+                combinations.insert(traits);
             }
-            _ => {}
         }
     }
 }
@@ -142,19 +136,17 @@ fn transform_test_function(fn_item: &mut ItemFn) {
     for stmt in &fn_item.block.stmts {
         match stmt {
             Stmt::Item(item @ (Item::Struct(_) | Item::Enum(_))) => {
-                if has_derive_arbitrary_attr(&item.attrs()) {
+                if has_derive_arbitrary_attr(item.attrs()) {
                     has_types = true;
 
-                    let traits = extract_derive_traits(&item.attrs());
+                    let traits = extract_derive_traits(item.attrs());
                     let macro_name = generate_macro_name(&traits);
 
-                    // derive属性を除去した型定義を作成
                     let mut cleaned_item = item.clone();
                     cleaned_item
                         .attrs_mut()
                         .retain(|attr| !attr.path().is_ident("derive"));
 
-                    // 適切なヘルパマクロを使用してマクロ呼び出しを作成
                     let macro_ident = syn::Ident::new(&macro_name, proc_macro2::Span::call_site());
                     let macro_call: Stmt = parse_quote! {
                         #macro_ident! { #cleaned_item };
