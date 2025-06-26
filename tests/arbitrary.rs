@@ -160,6 +160,13 @@ fn strategy_rank3() {
 }
 
 #[test]
+fn tuple_struct_strategy() {
+    #[derive(Arbitrary, Debug, PartialEq)]
+    struct X(#[strategy(1..10u32)] u32);
+    assert_arbitrary((1..10u32).prop_map(X));
+}
+
+#[test]
 fn strategy_underline() {
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct {
@@ -1701,4 +1708,15 @@ fn filter_with_strategy_and_map_1() {
         .prop_filter("", |x| x.y % 2 == 1);
 
     assert_arbitrary(s);
+}
+
+macro_rules! macro_rules_arbitrary {
+    ($item:item) => {
+        #[derive(Debug, Arbitrary)]
+        $item
+    };
+}
+macro_rules_arbitrary! {
+    #[allow(unused)]
+    struct MacroRulesArbitrary(#[strategy(0..2)] i32);
 }

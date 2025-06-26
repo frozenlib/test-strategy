@@ -1,3 +1,4 @@
+use derive_ex::Ex;
 use proc_macro2::{Group, Spacing, Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
 use std::{
@@ -162,8 +163,7 @@ impl SharpVals {
                                         bail!(span, "cannot use both `#self` and `#{}`", key);
                                     }
                                 }
-                                let mut ident = key.to_dummy_ident();
-                                ident.set_span(span);
+                                let ident = key.to_dummy_ident_with_span(span);
                                 tokens.extend(ident.to_token_stream());
                                 iter.next();
                                 continue;
@@ -198,24 +198,67 @@ impl SharpVals {
         }
     }
 }
+
+#[derive(Clone, Debug, Ex)]
+#[derive_ex(PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FieldKey {
+    raw: RawFieldKey,
+    #[ord(ignore)]
+    span: Span,
+}
+impl FieldKey {
+    pub fn from_field(idx: usize, field: &Field) -> Self {
+        Self {
+            raw: RawFieldKey::from_field(idx, field),
+            span: field.span(),
+        }
+    }
+    pub fn try_from_token(token: &TokenTree) -> Option<Self> {
+        RawFieldKey::try_from_token(token).map(|raw| Self {
+            raw,
+            span: token.span(),
+        })
+    }
+    pub fn to_dummy_ident(&self) -> Ident {
+        Ident::new(&format!("_{}", self.raw), self.span)
+    }
+    pub fn to_dummy_ident_with_span(&self, span: Span) -> Ident {
+        Ident::new(&format!("_{}", self.raw), span)
+    }
+    pub fn to_valid_ident(&self) -> Option<Ident> {
+        self.raw.to_valid_ident()
+    }
+}
+
+impl PartialEq<str> for FieldKey {
+    fn eq(&self, other: &str) -> bool {
+        self.raw == *other
+    }
+}
+impl std::fmt::Display for FieldKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.raw.fmt(f)
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub enum FieldKey {
+enum RawFieldKey {
     Named(String),
     Unnamed(usize),
 }
 
-impl FieldKey {
-    pub fn from_ident(ident: &Ident) -> Self {
+impl RawFieldKey {
+    fn from_ident(ident: &Ident) -> Self {
         Self::Named(ident.unraw().to_string())
     }
-    pub fn from_field(idx: usize, field: &Field) -> Self {
+    fn from_field(idx: usize, field: &Field) -> Self {
         if let Some(ident) = &field.ident {
             Self::from_ident(ident)
         } else {
             Self::Unnamed(idx)
         }
     }
-    pub fn try_from_token(token: &TokenTree) -> Option<Self> {
+    fn try_from_token(token: &TokenTree) -> Option<Self> {
         match token {
             TokenTree::Ident(ident) => Some(Self::from_ident(ident)),
             TokenTree::Literal(token) => {
@@ -232,25 +275,22 @@ impl FieldKey {
         }
     }
 
-    pub fn to_dummy_ident(&self) -> Ident {
-        Ident::new(&format!("_{self}"), Span::call_site())
-    }
-    pub fn to_valid_ident(&self) -> Option<Ident> {
+    fn to_valid_ident(&self) -> Option<Ident> {
         match self {
             Self::Named(name) => to_valid_ident(name).ok(),
             Self::Unnamed(..) => None,
         }
     }
 }
-impl PartialEq<str> for FieldKey {
+impl PartialEq<str> for RawFieldKey {
     fn eq(&self, other: &str) -> bool {
         match self {
-            FieldKey::Named(name) => name == other,
+            Self::Named(name) => name == other,
             _ => false,
         }
     }
 }
-impl std::fmt::Display for FieldKey {
+impl std::fmt::Display for RawFieldKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Named(name) => name.fmt(f),

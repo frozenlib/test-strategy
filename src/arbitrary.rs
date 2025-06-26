@@ -32,6 +32,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
             "`#[derive(Arbitrary)]` supports only enum and struct."
         ),
     };
+    let args_var = args_var_shared();
     impl_trait_result(
         &input,
         &parse_quote!(proptest::arbitrary::Arbitrary),
@@ -40,7 +41,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
             #type_parameters
             type Strategy = proptest::strategy::BoxedStrategy<Self>;
             #[allow(clippy::redundant_closure_call)]
-            fn arbitrary_with(args: <Self as proptest::arbitrary::Arbitrary>::Parameters) -> Self::Strategy {
+            fn arbitrary_with(#args_var: <Self as proptest::arbitrary::Arbitrary>::Parameters) -> Self::Strategy {
                 #[allow(dead_code)]
                 fn _filter_fn<T>(f: impl Fn(&T) -> bool) -> impl Fn(&T) -> bool {
                     f
@@ -73,7 +74,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
                 }
 
                 #[allow(unused_variables)]
-                let args = std::rc::Rc::new(args);
+                let #args_var = std::rc::Rc::new(#args_var);
                 proptest::strategy::Strategy::boxed(#expr)
             }
         },
@@ -292,7 +293,8 @@ impl Filter {
                 if sharp_vals.self_span.is_none() {
                     filter = filter.with_fn_arg_self();
                 }
-                results.extend(filter.make_let_as_expr(var, &quote!(_self), &quote!()));
+                let self_in_expr = quote_spanned!(attr.span()=> _self);
+                results.extend(filter.make_let_as_expr(var, &self_in_expr, &quote!()));
             }
         }
         Ok(results)
@@ -312,12 +314,21 @@ impl Filter {
         }
     }
     fn with_fn_arg_self(&self) -> Self {
-        self.with_fn_arg(&parse_quote!(_self), true, &parse_quote!(Self))
+        self.with_fn_arg(
+            &parse_quote_spanned! (self.span()=> _self),
+            true,
+            &parse_quote!(Self),
+        )
     }
 
-    fn make_let_as_expr(&self, var: &Ident, ps: &TokenStream, lets: &TokenStream) -> TokenStream {
+    fn make_let_as_expr(
+        &self,
+        var: &Ident,
+        params: &TokenStream,
+        lets: &TokenStream,
+    ) -> TokenStream {
         let expr = self.expr.to_token_stream();
-        Self::make_let_with(var, &self.whence, ps, lets, expr)
+        Self::make_let_with(var, &self.whence, params, lets, expr)
     }
     fn make_let_as_fn(&self, var: &Ident, arg_ty: &Type) -> TokenStream {
         let span = self.expr.span();
@@ -329,24 +340,29 @@ impl Filter {
     fn make_let_with(
         var: &Ident,
         whence: &Expr,
-        ps: &TokenStream,
+        params: &TokenStream,
         lets: &TokenStream,
         expr: TokenStream,
     ) -> TokenStream {
-        let fun = quote_spanned! {expr.span()=> move |#ps| {
+        let fun = quote_spanned! {expr.span()=> move |#params| {
             #lets
             #expr
         }};
         Self::make_let_with_fun(var, whence, fun)
     }
     fn make_let_with_fun(var: &Ident, whence: &Expr, fun: TokenStream) -> TokenStream {
+        let args = args_var_shared();
+        let args_in_expr = args_var(fun.span());
         quote_spanned! {fun.span()=>
             let #var = {
                 #[allow(unused_variables)]
-                let args = <std::rc::Rc<_> as std::clone::Clone>::clone(&args);
+                let #args_in_expr = <std::rc::Rc<_> as std::clone::Clone>::clone(&#args);
                 proptest::strategy::Strategy::prop_filter(#var, #whence, #fun)
             };
         }
+    }
+    fn span(&self) -> Span {
+        self.expr.span()
     }
 }
 
@@ -504,12 +520,14 @@ impl StrategyBuilder {
                         #[allow(non_snake_case)]
                         fn #func_ident<T: std::fmt::Debug, S: proptest::strategy::Strategy<Value = T>>(s: S) -> impl proptest::strategy::Strategy<Value = T> { s }
                     });
+                    let args = args_var_shared();
+                    let args_in_expr = args_var(expr.span());
                     expr_strategy = Some(StrategyExpr::new(
                         quote!(_),
                         quote_spanned!(expr.span()=> #func_ident::<#ty, _>(
                         {
                             #[allow(unused_variables)]
-                            let args = std::ops::Deref::deref(&args);
+                            let #args_in_expr = std::ops::Deref::deref(&#args);
                             #expr
                         })),
                         false,
@@ -716,8 +734,9 @@ impl StrategyBuilder {
             let #var = proptest::strategy::Strategy::prop_map(#var, |#ps| #constructor);
         });
         for filter in &self.filters_self {
+            let self_in_expr = parse_quote_spanned!(filter.span()=> _self);
             self.ts
-                .extend(filter.make_let_as_expr(var, &quote!(_self), &quote!()));
+                .extend(filter.make_let_as_expr(var, &self_in_expr, &quote!()));
         }
         self.ts.extend(quote!(#var));
         let ts = self.ts;
@@ -782,6 +801,7 @@ impl StrategyBuilder {
                     exprs.push(expr);
                 }
                 let ident = self.items[idx].strategy_ident();
+                let args = args_var_shared();
                 let exprs = if exprs.iter().all(|e| e.is_jast) {
                     let exprs: Vec<_> = exprs.iter().map(|e| &e.expr).collect();
                     let exprs = cons_tuple(&exprs);
@@ -789,7 +809,7 @@ impl StrategyBuilder {
                         {
                             let #var = proptest::strategy::Strategy::prop_map((#inputs), {
                                 #[allow(unused_variables)]
-                                let args = <std::rc::Rc<_> as std::clone::Clone>::clone(&args);
+                                let #args = <std::rc::Rc<_> as std::clone::Clone>::clone(&#args);
                                 move |#ps| #exprs
                             });
                             #filter_lets
@@ -802,7 +822,7 @@ impl StrategyBuilder {
                         {
                             let #var = proptest::strategy::Strategy::prop_flat_map(#inputs, {
                                 #[allow(unused_variables)]
-                                let args = <std::rc::Rc<_> as std::clone::Clone>::clone(&args);
+                                let #args = <std::rc::Rc<_> as std::clone::Clone>::clone(&#args);
                                 move |#ps| #exprs
                             });
                             #filter_lets
@@ -810,10 +830,11 @@ impl StrategyBuilder {
                         }
                     }
                 };
+                let args = args_var_shared();
                 self.ts.extend(quote! {
                     let #ident = {
                         #[allow(unused_variables)]
-                        let args = <std::rc::Rc<_> as std::clone::Clone>::clone(&args);
+                        let #args = <std::rc::Rc<_> as std::clone::Clone>::clone(&#args);
                         #exprs
                     };
                 });
@@ -1001,11 +1022,13 @@ impl StrategyBuilder {
             for &dep in &item.dependency {
                 lets.push(self.items[dep].let_sharp_val(false));
             }
+            let expr = &item.expr.expr;
+            let args = args_var_shared();
+            let args_in_expr = args_var(expr.span());
             lets.push(quote! {
                 #[allow(unused_variables)]
-                let args = std::ops::Deref::deref(&args);
+                let #args_in_expr = std::ops::Deref::deref(&#args);
             });
-            let expr = &item.expr.expr;
             StrategyExpr {
                 expr: quote! {
                     {
@@ -1237,4 +1260,11 @@ fn cons_tuple(es: &[impl ToTokens]) -> TokenStream {
             quote!((#e0, #el))
         }
     }
+}
+
+fn args_var_shared() -> Ident {
+    Ident::new("args_shared", Span::call_site())
+}
+fn args_var(span: Span) -> Ident {
+    Ident::new("args", span)
 }

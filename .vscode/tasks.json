@@ -331,5 +331,22 @@
         "clear": true
       }
     },
+    {
+      "type": "shell",
+      "label": "codegen",
+      "command": "cargo",
+      "args": [
+        "run",
+        "-p",
+        "codegen"
+      ],
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "presentation": {
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
   ]
 }

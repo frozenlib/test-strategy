@@ -18,14 +18,25 @@ rust-version = "1.70.0"
 proc-macro = true
 
 [dependencies]
-syn = { version = "2.0.100", features = ["visit", "full", "extra-traits"] }
-quote = "1.0.40"
-proc-macro2 = "1.0.94"
+syn = { workspace = true }
+quote = { workspace = true }
+proc-macro2 = { workspace = true }
 structmeta = "0.3.0"
+derive-ex = "0.1.8"
 
 [dev-dependencies]
 proptest = "1.6.0"
 trybuild = "1.0.104"
 tokio = { version = "1.44.1", features = ["rt-multi-thread"] }
-anyhow = "1.0.97"
+anyhow = { workspace = true }
 googletest = "0.14.0"
+
+
+[workspace]
+members = ["codegen"]
+
+[workspace.dependencies]
+syn = { version = "2.0.100", features = ["visit", "full", "extra-traits"] }
+quote = "1.0.40"
+proc-macro2 = "1.0.94"
+anyhow = "1.0.97"
