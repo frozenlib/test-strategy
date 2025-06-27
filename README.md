@@ -32,7 +32,7 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-test-strategy = "0.4.2"
+test-strategy = "0.4.3"
 proptest = "1.6.0"
 ```
 
@@ -644,7 +644,7 @@ The value specifies the asynchronous runtime used for the test.
 
 ```toml
 [dev-dependencies]
-test-strategy = "0.4.2"
+test-strategy = "0.4.3"
 proptest = "1.6.0"
 tokio = { version = "1.38.0", features = ["rt-multi-thread"] }
 ```
