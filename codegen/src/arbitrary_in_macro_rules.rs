@@ -1,6 +1,6 @@
 use anyhow::Result;
 use quote::ToTokens;
-use syn::{File, Item, ItemFn, Stmt, parse_quote, parse_str};
+use syn::{parse_quote, parse_str, File, Item, ItemFn, Stmt};
 
 use crate::utils::rustfmt;
 

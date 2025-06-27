@@ -38,10 +38,10 @@ fn assert_eq_strategy_ops<T: Debug + PartialEq>(
 
     let mut r_tree = r
         .new_tree(&mut r_runner)
-        .unwrap_or_else(|e| panic!("r.new_tree failed: {:?}", e));
+        .unwrap_or_else(|e| panic!("r.new_tree failed: {e:?}"));
     let mut l_tree = l
         .new_tree(&mut l_runner)
-        .unwrap_or_else(|e| panic!("l.new_tree failed: {:?}", e));
+        .unwrap_or_else(|e| panic!("l.new_tree failed: {e:?}"));
 
     let mut step = 0;
     for op in ops {
