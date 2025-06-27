@@ -41,6 +41,7 @@ pub fn derive_arbitrary(input: DeriveInput) -> Result<TokenStream> {
             #type_parameters
             type Strategy = proptest::strategy::BoxedStrategy<Self>;
             #[allow(clippy::redundant_closure_call)]
+            #[allow(clippy::shadow_unrelated)]
             fn arbitrary_with(#args_var: <Self as proptest::arbitrary::Arbitrary>::Parameters) -> Self::Strategy {
                 #[allow(dead_code)]
                 fn _filter_fn<T>(f: impl Fn(&T) -> bool) -> impl Fn(&T) -> bool {
