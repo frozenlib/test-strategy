@@ -9,12 +9,11 @@ use std::{
 use structmeta::{Parse, ToTokens};
 use syn::{
     ext::IdentExt,
-    parenthesized,
-    parse::{Parse, ParseStream},
+    parse::Parse,
     parse2, parse_str,
     punctuated::Punctuated,
     spanned::Spanned,
-    token::{Comma, Paren},
+    token::Comma,
     visit::{visit_path, visit_type, Visit},
     Attribute, DeriveInput, Expr, Field, GenericParam, Generics, Ident, Lit, Meta, Path, Result,
     Token, Type, WherePredicate,
@@ -38,28 +37,6 @@ pub fn into_macro_output(input: Result<TokenStream>) -> proc_macro::TokenStream 
         Err(e) => e.to_compile_error(),
     }
     .into()
-}
-
-pub struct Parenthesized<T> {
-    pub _paren_token: Option<Paren>,
-    pub content: T,
-}
-impl<T: Parse> Parse for Parenthesized<T> {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-        let paren_token = Some(parenthesized!(content in input));
-        let content = content.parse()?;
-        Ok(Self {
-            _paren_token: paren_token,
-            content,
-        })
-    }
-}
-impl<T> Deref for Parenthesized<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        &self.content
-    }
 }
 
 #[derive(Parse)]
