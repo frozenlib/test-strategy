@@ -11,6 +11,6 @@ note: required by a bound in `proptest::arbitrary::Arbitrary::Parameters`
   |                      ^^^^^^^ required by this bound in `Arbitrary::Parameters`
 help: consider annotating `TestArgs` with `#[derive(Default)]`
   |
-2  + #[derive(Default)]
-3  | struct TestArgs {
+ 2 + #[derive(Default)]
+ 3 | struct TestArgs {
    |
