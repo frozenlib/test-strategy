@@ -71,6 +71,7 @@ fn struct_field_raw_keyword_ident() {
 
 #[test]
 fn struct_over_12_field() {
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct {
         a0: u32,
@@ -169,6 +170,7 @@ fn tuple_struct_strategy() {
 
 #[test]
 fn strategy_underline() {
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     struct TestStruct {
         #[strategy(1..16u16)]
@@ -322,6 +324,7 @@ mod sub_mod {
 
 #[test]
 fn any_with_args_expr_private_constructor() {
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     #[arbitrary(args = sub_mod::TestArgsNoConstruct)]
     struct Inner {
@@ -329,6 +332,7 @@ fn any_with_args_expr_private_constructor() {
         x: u32,
     }
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[any(sub_mod::TestArgsNoConstruct::new())]
@@ -831,10 +835,12 @@ fn filter_with_by_ref() {
 
 #[test]
 fn args_struct() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         x_max: u32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -845,10 +851,12 @@ fn args_struct() {
 
 #[test]
 fn args_with_strategy_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         y: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -861,10 +869,12 @@ fn args_with_strategy_sharp_val() {
 }
 #[test]
 fn args_with_strategy_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         a: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -881,10 +891,12 @@ fn args_with_strategy_sharp_val_x2() {
 
 #[test]
 fn args_with_struct_filter_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     #[filter(#x % args.m != 0)]
@@ -895,10 +907,12 @@ fn args_with_struct_filter_sharp_val() {
 
 #[test]
 fn args_with_struct_filter_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     #[filter(#x % args.m != 0)]
@@ -910,10 +924,12 @@ fn args_with_struct_filter_sharp_val_x2() {
 
 #[test]
 fn args_with_struct_filter_sharp_self() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     #[filter(#self.x % args.m != 0)]
@@ -924,10 +940,12 @@ fn args_with_struct_filter_sharp_self() {
 
 #[test]
 fn args_with_struct_filter_sharp_self_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     #[filter(#self.x % args.m != 0)]
@@ -939,10 +957,12 @@ fn args_with_struct_filter_sharp_self_x2() {
 
 #[test]
 fn args_with_struct_filter_fn() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     #[filter(is_valid_fn(args.m))]
@@ -957,10 +977,12 @@ fn args_with_struct_filter_fn() {
 
 #[test]
 fn args_with_struct_filter_fn_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     #[filter(is_valid_fn(args.m))]
@@ -976,10 +998,12 @@ fn args_with_struct_filter_fn_x2() {
 
 #[test]
 fn args_with_enum_filter_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     #[filter(#self.is_valid(args.m))]
@@ -1000,10 +1024,12 @@ fn args_with_enum_filter_sharp_val() {
 
 #[test]
 fn args_with_enum_filter_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     #[filter(#self.is_valid(args.m))]
@@ -1025,10 +1051,12 @@ fn args_with_enum_filter_sharp_val_x2() {
 
 #[test]
 fn args_with_variant_filter_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     enum TestEnum {
@@ -1042,10 +1070,12 @@ fn args_with_variant_filter_sharp_val() {
 
 #[test]
 fn args_with_variant_filter_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     enum TestEnum {
@@ -1060,10 +1090,12 @@ fn args_with_variant_filter_sharp_val_x2() {
 
 #[test]
 fn args_with_field_filter_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1074,10 +1106,12 @@ fn args_with_field_filter_sharp_val() {
 
 #[test]
 fn args_with_field_filter_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1089,10 +1123,12 @@ fn args_with_field_filter_sharp_val_x2() {
 
 #[test]
 fn args_with_field_filter_fn() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1107,10 +1143,12 @@ fn args_with_field_filter_fn() {
 
 #[test]
 fn args_with_field_filter_fn_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1126,10 +1164,12 @@ fn args_with_field_filter_fn_x2() {
 
 #[test]
 fn args_map() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1139,10 +1179,12 @@ fn args_map() {
 }
 #[test]
 fn args_map_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1156,10 +1198,12 @@ fn args_map_x2() {
 
 #[test]
 fn args_map_filter_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1171,10 +1215,12 @@ fn args_map_filter_val() {
 
 #[test]
 fn args_map_filter_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1187,10 +1233,12 @@ fn args_map_filter_val_x2() {
 
 #[test]
 fn args_map_filter_fn_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1202,10 +1250,12 @@ fn args_map_filter_fn_val() {
 
 #[test]
 fn args_map_filter_fn_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1218,10 +1268,12 @@ fn args_map_filter_fn_val_x2() {
 
 #[test]
 fn args_flat_map_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(args = TestArgs)]
     struct TestStruct {
@@ -1273,9 +1325,11 @@ fn auto_bound_x2() {
 
 #[test]
 fn auto_bound_map_input() {
+    #[allow(dead_code)]
     #[derive(Debug, PartialEq, Clone)]
     struct Wrapped<T>(T);
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(bound(T: Clone, ..))]
     struct TestStruct<T> {
@@ -1384,6 +1438,7 @@ fn manual_bound_variant() {
 #[test]
 fn enum_with_variant_named_parameters() {
     #[deny(warnings)]
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq, Clone)]
     enum MyEnum {
         Parameters,
@@ -1592,6 +1647,7 @@ fn map_with_by_ref_and_dependency() {
 
 #[test]
 fn map_7_field() {
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq, Clone)]
     struct X {
         #[map(|x: u32| x + 1)]

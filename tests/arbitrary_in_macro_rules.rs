@@ -65,7 +65,7 @@ fn struct_field_raw_keyword_ident() {
 }
 #[test]
 fn struct_over_12_field() {
-    macro_rules_arbitrary_debug_partialeq! { struct TestStruct { a0 : u32 , a1 : u32 , a2 : u32 , a3 : u32 , a4 : u32 , a5 : u32 , a6 : u32 , a7 : u32 , a8 : u32 , a9 : u32 , a10 : u32 , a11 : u32 , a12 : u32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] struct TestStruct { a0 : u32 , a1 : u32 , a2 : u32 , a3 : u32 , a4 : u32 , a5 : u32 , a6 : u32 , a7 : u32 , a8 : u32 , a9 : u32 , a10 : u32 , a11 : u32 , a12 : u32 , } };
 }
 #[test]
 fn tuple_struct_no_attr_field() {
@@ -113,7 +113,7 @@ fn tuple_struct_strategy() {
 }
 #[test]
 fn strategy_underline() {
-    macro_rules_arbitrary_debug_partialeq! { struct TestStruct { # [strategy (1 .. 16u16)] _x : u16 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] struct TestStruct { # [strategy (1 .. 16u16)] _x : u16 , } };
 }
 #[test]
 fn strategy_rev() {
@@ -198,8 +198,8 @@ mod sub_mod {
 }
 #[test]
 fn any_with_args_expr_private_constructor() {
-    macro_rules_arbitrary_debug! { # [arbitrary (args = sub_mod :: TestArgsNoConstruct)] struct Inner { # [allow (dead_code)] x : u32 , } };
-    macro_rules_arbitrary_debug! { struct TestInput { # [any (sub_mod :: TestArgsNoConstruct :: new ())] # [allow (dead_code)] inner : Inner , } };
+    macro_rules_arbitrary_debug! { # [allow (dead_code)] # [arbitrary (args = sub_mod :: TestArgsNoConstruct)] struct Inner { # [allow (dead_code)] x : u32 , } };
+    macro_rules_arbitrary_debug! { # [allow (dead_code)] struct TestInput { # [any (sub_mod :: TestArgsNoConstruct :: new ())] # [allow (dead_code)] inner : Inner , } };
 }
 #[test]
 fn any_with_args_struct_field() {
@@ -486,89 +486,99 @@ fn filter_with_by_ref() {
 }
 #[test]
 fn args_struct() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         x_max: u32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [strategy (0 .. args . x_max)] x : u32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [strategy (0 .. args . x_max)] x : u32 , } };
 }
 #[test]
 fn args_with_strategy_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         y: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [strategy (0 .. 10)] x : i32 , # [strategy (0 ..# x + args . y)] y : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [strategy (0 .. 10)] x : i32 , # [strategy (0 ..# x + args . y)] y : i32 , } };
 }
 #[test]
 fn args_with_strategy_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         a: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [strategy (0 .. 10)] x : i32 , # [strategy (0 ..# x + args . a)] y : i32 , # [strategy (0 ..# y + args . a)] z : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [strategy (0 .. 10)] x : i32 , # [strategy (0 ..# x + args . a)] y : i32 , # [strategy (0 ..# y + args . a)] z : i32 , } };
 }
 #[test]
 fn args_with_struct_filter_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] # [filter (# x % args . m != 0)] struct TestStruct { x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] # [filter (# x % args . m != 0)] struct TestStruct { x : i32 , } };
 }
 #[test]
 fn args_with_struct_filter_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] # [filter (# x % args . m != 0)] # [filter (# x % args . m != 1)] struct TestStruct { x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] # [filter (# x % args . m != 0)] # [filter (# x % args . m != 1)] struct TestStruct { x : i32 , } };
 }
 #[test]
 fn args_with_struct_filter_sharp_self() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] # [filter (# self . x % args . m != 0)] struct TestStruct { x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] # [filter (# self . x % args . m != 0)] struct TestStruct { x : i32 , } };
 }
 #[test]
 fn args_with_struct_filter_sharp_self_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] # [filter (# self . x % args . m != 0)] # [filter (# self . x % args . m != 1)] struct TestStruct { x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] # [filter (# self . x % args . m != 0)] # [filter (# self . x % args . m != 1)] struct TestStruct { x : i32 , } };
 }
 #[test]
 fn args_with_struct_filter_fn() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] # [filter (is_valid_fn (args . m))] struct TestStruct { x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] # [filter (is_valid_fn (args . m))] struct TestStruct { x : i32 , } };
     fn is_valid_fn(_: i32) -> impl Fn(&TestStruct) -> bool {
         |_| true
     }
 }
 #[test]
 fn args_with_struct_filter_fn_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] # [filter (is_valid_fn (args . m))] # [filter (is_valid_fn (args . m + 1))] struct TestStruct { x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] # [filter (is_valid_fn (args . m))] # [filter (is_valid_fn (args . m + 1))] struct TestStruct { x : i32 , } };
     fn is_valid_fn(_: i32) -> impl Fn(&TestStruct) -> bool {
         |_| true
     }
 }
 #[test]
 fn args_with_enum_filter_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] # [filter (# self . is_valid (args . m))] enum TestEnum { A { x : i32 } , B , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] # [filter (# self . is_valid (args . m))] enum TestEnum { A { x : i32 } , B , } };
     impl TestEnum {
         fn is_valid(&self, m: i32) -> bool {
             match self {
@@ -580,11 +590,12 @@ fn args_with_enum_filter_sharp_val() {
 }
 #[test]
 fn args_with_enum_filter_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] # [filter (# self . is_valid (args . m))] # [filter (# self . is_valid (args . m + 1))] enum TestEnum { A { x : i32 } , B , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] # [filter (# self . is_valid (args . m))] # [filter (# self . is_valid (args . m + 1))] enum TestEnum { A { x : i32 } , B , } };
     impl TestEnum {
         fn is_valid(&self, m: i32) -> bool {
             match self {
@@ -596,113 +607,126 @@ fn args_with_enum_filter_sharp_val_x2() {
 }
 #[test]
 fn args_with_variant_filter_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] enum TestEnum { # [filter (# x % args . m != 0)] A { x : i32 , } , B , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] enum TestEnum { # [filter (# x % args . m != 0)] A { x : i32 , } , B , } };
 }
 #[test]
 fn args_with_variant_filter_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] enum TestEnum { # [filter (# x % args . m != 0)] # [filter (# x % args . m != 1)] A { x : i32 , } , B , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] enum TestEnum { # [filter (# x % args . m != 0)] # [filter (# x % args . m != 1)] A { x : i32 , } , B , } };
 }
 #[test]
 fn args_with_field_filter_sharp_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [filter (# x % args . m != 0)] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [filter (# x % args . m != 0)] x : i32 , } };
 }
 #[test]
 fn args_with_field_filter_sharp_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [filter (# x % args . m != 0)] # [filter (# x % args . m != 1)] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [filter (# x % args . m != 0)] # [filter (# x % args . m != 1)] x : i32 , } };
 }
 #[test]
 fn args_with_field_filter_fn() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [filter (is_larger_than (args . m))] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [filter (is_larger_than (args . m))] x : i32 , } };
     fn is_larger_than(t: i32) -> impl Fn(&i32) -> bool {
         move |x: &i32| *x > t
     }
 }
 #[test]
 fn args_with_field_filter_fn_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [filter (is_larger_than (args . m))] # [filter (is_larger_than (args . m + 1))] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [filter (is_larger_than (args . m))] # [filter (is_larger_than (args . m + 1))] x : i32 , } };
     fn is_larger_than(t: i32) -> impl Fn(&i32) -> bool {
         move |x: &i32| *x > t
     }
 }
 #[test]
 fn args_map() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] x : i32 , } };
 }
 #[test]
 fn args_map_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] x : i32 , # [map (| y : i32 | y + args . m)] y : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] x : i32 , # [map (| y : i32 | y + args . m)] y : i32 , } };
 }
 #[test]
 fn args_map_filter_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] # [filter (# x > args . m)] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] # [filter (# x > args . m)] x : i32 , } };
 }
 #[test]
 fn args_map_filter_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] # [filter (# x > args . m)] # [filter (# x > args . m + 1)] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] # [filter (# x > args . m)] # [filter (# x > args . m + 1)] x : i32 , } };
 }
 #[test]
 fn args_map_filter_fn_val() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] # [filter (|& x : & i32 | x > args . m)] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] # [filter (|& x : & i32 | x > args . m)] x : i32 , } };
 }
 #[test]
 fn args_map_filter_fn_val_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] # [filter (|& x : & i32 | x > args . m)] # [filter (|& x : & i32 | x > args . m + 1)] x : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { # [map (| x : i32 | x + args . m)] # [filter (|& x : & i32 | x > args . m)] # [filter (|& x : & i32 | x > args . m + 1)] x : i32 , } };
 }
 #[test]
 fn args_flat_map_x2() {
+    #[allow(dead_code)]
     #[derive(Default)]
     struct TestArgs {
         m: i32,
     }
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (args = TestArgs)] struct TestStruct { a0 : i32 , a1 : i32 , # [strategy (# a0 ..# a1 + args . m)] b0 : i32 , # [strategy (# a0 ..# a1 + args . m)] b1 : i32 , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (args = TestArgs)] struct TestStruct { a0 : i32 , a1 : i32 , # [strategy (# a0 ..# a1 + args . m)] b0 : i32 , # [strategy (# a0 ..# a1 + args . m)] b1 : i32 , } };
 }
 #[test]
 fn auto_bound_tuple_struct() {
@@ -729,9 +753,10 @@ fn auto_bound_x2() {
 }
 #[test]
 fn auto_bound_map_input() {
+    #[allow(dead_code)]
     #[derive(Debug, PartialEq, Clone)]
     struct Wrapped<T>(T);
-    macro_rules_arbitrary_debug_partialeq! { # [arbitrary (bound (T : Clone , ..))] struct TestStruct < T > { # [by_ref] # [map (| t : T | Wrapped (t))] t : Wrapped < T > , } };
+    macro_rules_arbitrary_debug_partialeq! { # [allow (dead_code)] # [arbitrary (bound (T : Clone , ..))] struct TestStruct < T > { # [by_ref] # [map (| t : T | Wrapped (t))] t : Wrapped < T > , } };
 }
 #[test]
 fn manual_bound_type() {
@@ -774,7 +799,7 @@ fn manual_bound_variant() {
 }
 #[test]
 fn enum_with_variant_named_parameters() {
-    macro_rules_arbitrary_debug_partialeq_clone! { # [deny (warnings)] enum MyEnum { Parameters , SomethingElse , } };
+    macro_rules_arbitrary_debug_partialeq_clone! { # [deny (warnings)] # [allow (dead_code)] enum MyEnum { Parameters , SomethingElse , } };
 }
 #[test]
 fn map() {
@@ -881,7 +906,7 @@ fn map_with_by_ref_and_dependency() {
 }
 #[test]
 fn map_7_field() {
-    macro_rules_arbitrary_debug_partialeq_clone! { struct X { # [map (| x : u32 | x + 1)] a1 : u32 , # [map (| x : u32 | x + 2)] a2 : u32 , # [map (| x : u32 | x + 3)] a3 : u32 , # [map (| x : u32 | x + 4)] a4 : u32 , # [map (| x : u32 | x + 5)] a5 : u32 , # [map (| x : u32 | x + 6)] a6 : u32 , # [map (| x : u32 | x + 7)] a7 : u32 , } };
+    macro_rules_arbitrary_debug_partialeq_clone! { # [allow (dead_code)] struct X { # [map (| x : u32 | x + 1)] a1 : u32 , # [map (| x : u32 | x + 2)] a2 : u32 , # [map (| x : u32 | x + 3)] a3 : u32 , # [map (| x : u32 | x + 4)] a4 : u32 , # [map (| x : u32 | x + 5)] a5 : u32 , # [map (| x : u32 | x + 6)] a6 : u32 , # [map (| x : u32 | x + 7)] a7 : u32 , } };
 }
 #[test]
 fn depend_on_map() {

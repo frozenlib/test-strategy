@@ -107,6 +107,7 @@ fn any_field() {
 fn weight() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     enum TestInput {
         A,
@@ -120,9 +121,11 @@ fn weight() {
 fn weight_0() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Debug)]
     struct NotArbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     enum TestInput {
         A,
@@ -137,6 +140,7 @@ fn weight_0() {
 fn filter_field_expr() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[filter(#x % 2 == 0)]
@@ -149,6 +153,7 @@ fn filter_field_expr() {
 fn filter_struct_expr() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     #[filter((#x + #y) % 2 == 0)]
     struct TestInput {
@@ -163,6 +168,7 @@ fn filter_struct_expr() {
 fn filter_struct_expr_self() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     #[filter((#self.x + #self.y) % 2 == 0)]
     struct TestInput {
@@ -175,6 +181,7 @@ fn filter_struct_expr_self() {
 fn filter_field_fn() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[filter(is_even)]
@@ -190,6 +197,7 @@ fn filter_field_fn() {
 fn filter_struct_fn() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     #[filter(x_is_even)]
     struct TestInput {
@@ -204,6 +212,7 @@ fn filter_struct_fn() {
 fn filter_name() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[filter("filter name", #x % 2 == 0)]
@@ -216,6 +225,7 @@ fn filter_name() {
 fn by_ref_strategy() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     struct TestInput {
         #[by_ref]
@@ -233,11 +243,13 @@ fn by_ref_strategy() {
 fn arbitrary_args() {
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Debug, Default)]
     struct TestInputArgs {
         x_max: u32,
     }
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug)]
     #[arbitrary(args = TestInputArgs)]
     struct TestInput {
@@ -280,6 +292,7 @@ fn bound_both() {
     use proptest::arbitrary::any_with;
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(bound(T1, ..))]
     struct TestInput<T1, T2> {
@@ -295,6 +308,7 @@ fn bound_manual_type() {
     use proptest::arbitrary::any_with;
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(bound(T))]
     struct TestInput<T> {
@@ -308,6 +322,7 @@ fn bound_manual_predicate() {
     use proptest::arbitrary::{any_with, Arbitrary};
     use test_strategy::Arbitrary;
 
+    #[allow(dead_code)]
     #[derive(Arbitrary, Debug, PartialEq)]
     #[arbitrary(bound(T : Arbitrary + 'static))]
     struct TestInput<T> {
