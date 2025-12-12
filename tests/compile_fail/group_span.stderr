@@ -8,7 +8,7 @@ warning: unnecessary parentheses around block return value
 help: remove these parentheses
   |
 6 -     #[strategy((0u8..10u8))]
-6 +     #[strategy(0u8..10u8)]
+6 +     #[strategy(0u8..10u8 )]
   |
 
 error[E0271]: type mismatch resolving `<Range<u8> as Strategy>::Value == u32`
