@@ -94,7 +94,7 @@ pub fn build_proptest(attr: TokenStream, mut item_fn: ItemFn) -> Result<TokenStr
         }
     };
     item_fn.sig.inputs = parse_quote! { input: #args_type_ident };
-    item_fn.block = Box::new(parse2(block)?);
+    *item_fn.block = parse2(block)?;
     if !item_fn.attrs.iter().any(is_test_attribute) {
         let test_attr: Attribute = parse_quote! {
             #[::core::prelude::v1::test]
