@@ -881,18 +881,17 @@ impl StrategyBuilder {
         }
     }
 
-    fn set_group_next(&mut self, group: usize, group_next: usize) -> bool {
+    fn set_group_next(&mut self, group: usize, group_next: usize) {
         let group_next_old = self.items[group].group_next;
         if group_next_old == Some(group_next) {
-            return false;
+            return;
         }
         if let Some(group_next_old) = group_next_old {
             if group_next_old != group {
                 self.set_group_next(group_next_old, group_next);
             }
         }
-        self.items[group].group_next = Some(group_next);
-        true
+        self.items[group].group_next = Some(group_next)
     }
     fn merge_all_groups(&mut self) {
         for idx in 0..self.items.len() {
