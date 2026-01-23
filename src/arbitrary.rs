@@ -753,18 +753,15 @@ impl StrategyBuilder {
                 .dependency
                 .iter()
                 .map(|&idx| self.resolve_group_next_input(idx))
-                .min()
+                .min() // None if any item is ungenerated; otherwise use the smallest item as the new group.
                 .unwrap_or(None);
             if let Some(group_next) = group_next {
+                // Set this item's group and merge dependent groups into one.
                 self.set_group_next_new(idx, group_next);
                 created = true;
             }
         }
-        for idx in 0..self.items.len() {
-            if let Some(group_next) = self.resolve_group_next_input(idx) {
-                self.set_group_next(idx, group_next);
-            }
-        }
+        self.normalize_group_nexts();
         for idx in 0..self.items.len() {
             self.register_group_dependency(idx);
         }
@@ -850,14 +847,29 @@ impl StrategyBuilder {
         }
         created
     }
+
+    fn normalize_group_nexts(&mut self) {
+        for idx in 0..self.items.len() {
+            if let Some(group_next) = self.resolve_group_next(idx) {
+                self.set_group_next(idx, group_next);
+            }
+        }
+    }
+
+    /// Return which group's input this item becomes in the next stage.
+    ///
+    /// None if the item is not generated, because it does not appear as a group input.
     fn resolve_group_next_input(&self, idx: usize) -> Option<usize> {
         let item_ref = &self.items[idx];
         item_ref.group?;
-        let group_next = item_ref.group_next?;
-        if group_next == idx {
-            return Some(idx);
+        self.resolve_group_next(item_ref.group_next?)
+    }
+    fn resolve_group_next(&self, idx: usize) -> Option<usize> {
+        let mut idx = self.items[idx].group_next?;
+        while self.items[idx].group_next != Some(idx) {
+            idx = self.items[idx].group_next.unwrap();
         }
-        self.resolve_group_next_input(group_next)
+        Some(idx)
     }
     fn set_group_next_new(&mut self, idx: usize, group_next: usize) {
         if let Some(base_idx) = self.items[idx].base_idx {
@@ -865,20 +877,22 @@ impl StrategyBuilder {
         }
         self.set_group_next(idx, group_next);
         for i in 0..self.items[idx].dependency.len() {
-            self.set_group_next(self.items[idx].dependency[i], group_next)
+            self.set_group_next(self.items[idx].dependency[i], group_next);
         }
     }
-    fn set_group_next(&mut self, group: usize, group_next: usize) {
+
+    fn set_group_next(&mut self, group: usize, group_next: usize) -> bool {
         let group_next_old = self.items[group].group_next;
         if group_next_old == Some(group_next) {
-            return;
+            return false;
         }
         if let Some(group_next_old) = group_next_old {
             if group_next_old != group {
-                self.set_group_next(group_next_old, group_next)
+                self.set_group_next(group_next_old, group_next);
             }
         }
         self.items[group].group_next = Some(group_next);
+        true
     }
     fn merge_all_groups(&mut self) {
         for idx in 0..self.items.len() {
@@ -1050,22 +1064,38 @@ struct StrategyItem {
     key: FieldKey,
     by_ref: bool,
     is_field: bool,
+
+    /// Indexes of temporary strategies this item depends on; temporary strategies do not appear in the final field strategy.
     base_idx: Option<usize>,
     arbitrary_type: Option<Type>,
     expr: StrategyExpr,
+
+    /// Indexes of dependent items.
     dependency: Vec<usize>,
 
+    /// True if this item is dropped; only temporary strategies are dropped.
     is_dropped: bool,
 
+    /// Group this item belongs to; None if its strategy has not been generated.
     group: Option<usize>,
+
+    /// Group this item belongs to in the next stage.
+    /// If the target group belongs to another group, this item also belongs to that other group.
     group_next: Option<usize>,
 
+    /// Position within the item's group.
     offset: Option<usize>,
+
+    /// Index within the group this item belongs to in the next stage.
     offset_next: Option<usize>,
 
+    /// If this item is a group, indexes of items in the group.
     group_items: Vec<usize>,
+    /// If this item is a group in the next stage, indexes of items in the group at that stage.
     group_items_next: Vec<usize>,
+    /// If this item is a group, indexes of groups it depends on.
     group_dependency: Vec<usize>,
+    /// If this item is a group, its position in the next stage's `group_dependency`.
     group_offset: Option<usize>,
 }
 
