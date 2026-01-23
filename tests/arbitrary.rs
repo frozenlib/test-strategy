@@ -1767,6 +1767,35 @@ fn filter_with_strategy_and_map_1() {
     assert_arbitrary(s);
 }
 
+#[test]
+fn contained_dependency() {
+    #[derive(Debug, Arbitrary, Clone, PartialEq, Eq)]
+    pub struct X {
+        #[strategy(0..100u32)]
+        pub a: u32,
+        #[strategy(0..100u32)]
+        pub b: u32,
+        #[strategy(0..100u32)]
+        pub c: u32,
+
+        #[strategy(Just(#b + #c))]
+        pub x: u32,
+
+        #[strategy(Just(#a + #b + #c))]
+        pub y: u32,
+    }
+    assert_eq_strategy(
+        any::<X>(),
+        (0..100u32, 0..100u32, 0..100u32)
+            .prop_flat_map(|(a, b, c)| {
+                let x = b + c;
+                let y = a + b + c;
+                Just((a, b, c, x, y))
+            })
+            .prop_map(|(a, b, c, x, y)| X { a, b, c, x, y }),
+    );
+}
+
 macro_rules! macro_rules_arbitrary {
     ($item:item) => {
         #[derive(Debug, Arbitrary)]
