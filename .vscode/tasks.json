@@ -91,6 +91,7 @@
       "type": "shell",
       "label": "cargo test 32bit windows",
       "command": "cargo test --target-dir ./target/i686-debug --target i686-pc-windows-msvc ",
+      "args": [],
       "problemMatcher": [
         "$rustc"
       ],
@@ -298,6 +299,7 @@
       "type": "shell",
       "label": "check msrv",
       "command": "cargo hack test --rust-version --workspace --all-targets --ignore-private",
+      "args": [],
       "problemMatcher": [
         "$rustc"
       ],
