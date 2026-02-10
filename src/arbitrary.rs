@@ -470,6 +470,7 @@ impl StrategyBuilder {
                     let ty = &field.ty;
                     let input = key.to_dummy_ident();
                     expr_map = Some(StrategyExpr::new(
+                        expr.span(),
                         quote_spanned!(expr.span()=> #ty),
                         quote_spanned!(expr.span()=> (#expr)(#input)),
                         true,
@@ -524,6 +525,7 @@ impl StrategyBuilder {
                     let args = args_var_shared();
                     let args_in_expr = args_var(expr.span());
                     expr_strategy = Some(StrategyExpr::new(
+                        expr.span(),
                         quote!(_),
                         quote_spanned!(expr.span()=> #func_ident::<#ty, _>(
                         {
@@ -539,6 +541,7 @@ impl StrategyBuilder {
                     let any_attr: AnyArgs =
                         sharp_vals_strategy.expand_args_or_default(&attr.meta)?;
                     expr_strategy = Some(StrategyExpr::new(
+                        attr.span(),
                         quote!(),
                         any_attr.into_strategy(&strategy_value_type),
                         false,
@@ -579,6 +582,7 @@ impl StrategyBuilder {
                 is_any = true;
                 let ty = strategy_value_type.get();
                 StrategyExpr::new(
+                    field.span(),
                     quote!(#ty),
                     AnyArgs::empty().into_strategy(&strategy_value_type),
                     false,
@@ -1029,7 +1033,12 @@ impl StrategyBuilder {
     fn strategy_expr(&self, idx: usize) -> StrategyExpr {
         if self.is_exists(idx) {
             let ident = self.items[idx].key.to_dummy_ident();
-            StrategyExpr::new(quote!(_), quote!(std::clone::Clone::clone(&#ident)), true)
+            StrategyExpr::new(
+                ident.span(),
+                quote!(_),
+                quote!(std::clone::Clone::clone(&#ident)),
+                true,
+            )
         } else {
             let item = &self.items[idx];
             let mut lets = Vec::new();
@@ -1038,12 +1047,13 @@ impl StrategyBuilder {
             }
             let expr = &item.expr.expr;
             let args = args_var_shared();
-            let args_in_expr = args_var(expr.span());
+            let args_in_expr = args_var(item.expr.span);
             lets.push(quote! {
                 #[allow(unused_variables)]
                 let #args_in_expr = std::ops::Deref::deref(&#args);
             });
             StrategyExpr {
+                span: item.expr.span,
                 expr: quote! {
                     {
                         #(#lets)*
@@ -1134,7 +1144,15 @@ impl StrategyItem {
         if self.group.is_none() && self.dependency.is_empty() {
             let ident = self.strategy_ident();
             let expr = &self.expr;
-            ts.extend(quote!(let #ident = #expr;));
+            let args = args_var_shared();
+            let args_in_expr = args_var(expr.span);
+            ts.extend(quote_spanned! {expr.span=>
+                let #ident = {
+                    #[allow(unused_variables)]
+                    let #args_in_expr = std::ops::Deref::deref(&#args);
+                    #expr
+                };
+            });
             self.group = Some(self.idx);
             self.group_next = self.group;
             self.offset = Some(0);
@@ -1199,14 +1217,16 @@ impl StrategyValueType {
     }
 }
 struct StrategyExpr {
+    span: Span,
     expr: TokenStream,
     filters: Vec<UnaryFilter>,
     ty: TokenStream,
     is_jast: bool,
 }
 impl StrategyExpr {
-    fn new(ty: TokenStream, expr: TokenStream, is_jast: bool) -> Self {
+    fn new(span: Span, ty: TokenStream, expr: TokenStream, is_jast: bool) -> Self {
         Self {
+            span,
             ty,
             expr,
             is_jast,

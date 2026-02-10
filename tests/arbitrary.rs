@@ -1796,6 +1796,25 @@ fn contained_dependency() {
     );
 }
 
+#[test]
+#[allow(unused)]
+fn args_in_any() {
+    #[derive(Arbitrary, Debug)]
+    #[arbitrary(args = u32)]
+    struct A(#[strategy(0..*args)] u32);
+
+    #[derive(Arbitrary, Debug)]
+    #[arbitrary(args = u32)]
+    struct X {
+        #[any(*args)]
+        a: A,
+    }
+
+    #[derive(Arbitrary, Debug)]
+    #[arbitrary(args = u32)]
+    struct Y(#[any(*args)] A);
+}
+
 macro_rules! macro_rules_arbitrary {
     ($item:item) => {
         #[derive(Debug, Arbitrary)]

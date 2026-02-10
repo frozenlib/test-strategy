@@ -28,6 +28,12 @@ macro_rules! macro_rules_arbitrary_debug_partialeq_clone {
         $item
     };
 }
+macro_rules! macro_rules_debug_arbitrary_clone_partialeq_eq {
+    ($ item : item) => {
+        #[derive(Debug, Arbitrary, Clone, PartialEq, Eq)]
+        $item
+    };
+}
 #[test]
 fn unit_struct() {
     macro_rules_arbitrary_debug_partialeq! { struct TestStruct ; };
@@ -953,6 +959,27 @@ fn filter_with_strategy_and_map_1() {
         })
         .prop_filter("", |x| x.y % 2 == 1);
     assert_arbitrary(s);
+}
+#[test]
+fn contained_dependency() {
+    macro_rules_debug_arbitrary_clone_partialeq_eq! { pub struct X { # [strategy (0 .. 100u32)] pub a : u32 , # [strategy (0 .. 100u32)] pub b : u32 , # [strategy (0 .. 100u32)] pub c : u32 , # [strategy (Just (# b + # c))] pub x : u32 , # [strategy (Just (# a + # b + # c))] pub y : u32 , } };
+    assert_eq_strategy(
+        any::<X>(),
+        (0..100u32, 0..100u32, 0..100u32)
+            .prop_flat_map(|(a, b, c)| {
+                let x = b + c;
+                let y = a + b + c;
+                Just((a, b, c, x, y))
+            })
+            .prop_map(|(a, b, c, x, y)| X { a, b, c, x, y }),
+    );
+}
+#[test]
+#[allow(unused)]
+fn args_in_any() {
+    macro_rules_arbitrary_debug! { # [arbitrary (args = u32)] struct A (# [strategy (0 ..* args)] u32) ; };
+    macro_rules_arbitrary_debug! { # [arbitrary (args = u32)] struct X { # [any (* args)] a : A , } };
+    macro_rules_arbitrary_debug! { # [arbitrary (args = u32)] struct Y (# [any (* args)] A) ; };
 }
 macro_rules! macro_rules_arbitrary {
     ($ item : item) => {
