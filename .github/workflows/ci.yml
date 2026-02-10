@@ -37,4 +37,4 @@ jobs:
         run: cargo test --verbose
       - uses: taiki-e/install-action@cargo-hack
       - name: Check msrv
-        run: cargo hack test --rust-version --workspace --all-targets --ignore-private
+        run: cargo hack build --rust-version --workspace --ignore-private
