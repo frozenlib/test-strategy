@@ -4,9 +4,24 @@
 [![Docs.rs](https://docs.rs/test-strategy/badge.svg)](https://docs.rs/test-strategy/)
 [![Actions Status](https://github.com/frozenlib/test-strategy/workflows/CI/badge.svg)](https://github.com/frozenlib/test-strategy/actions)
 
-This crate provides two procedural macros, `#[derive(Arbitrary)]` and `#[proptest]`.
+<!-- cargo-reedme: start -->
 
-Each of these macros is an alternative to the following proptest's official macros.
+<!-- cargo-reedme: info-start
+
+    Do not edit this region by hand
+    ===============================
+
+    This region was generated from Rust documentation comments by `cargo-reedme` using this command:
+
+        cargo +nightly reedme
+
+    for more info: https://github.com/nik-rev/cargo-reedme
+
+cargo-reedme: info-end -->
+
+This crate provides two procedural macros, [`#[derive(Arbitrary)]`](https://docs.rs/test-strategy/latest/test_strategy/derive.Arbitrary.html) and [`#[proptest]`](https://docs.rs/test-strategy/latest/test_strategy/attr.proptest.html).
+
+Each of these macros is an alternative to the following proptest’s official macros.
 
 | [test-strategy][]                          | [proptest][]                   | [proptest-derive][]                  |
 | ------------------------------------------ | ------------------------------ | ------------------------------------ |
@@ -19,14 +34,14 @@ Each of these macros is an alternative to the following proptest's official macr
 [official-m]: https://altsysrq.github.io/rustdoc/proptest/latest/proptest/macro.proptest.html
 [official-a]: https://altsysrq.github.io/proptest-book/proptest-derive/modifiers.html
 
-The macros provided by this crate have the following advantages over the proptest's official macros.
+The macros provided by this crate have the following advantages over the proptest’s official macros.
 
 - Supports higher-order strategies. (`#[derive(Arbitrary)]` and `#[proptest]`)
 - Code formatting is not disabled. (`#[proptest]`)
 
-However, the syntax of this crate's macros are not compatible with the syntax of the official macros.
+However, the syntax of this crate’s macros are not compatible with the syntax of the official macros.
 
-## Install
+### Install
 
 Add this to your Cargo.toml:
 
@@ -36,9 +51,9 @@ test-strategy = "0.4.5"
 proptest = "1.6.0"
 ```
 
-## Example
+### Example
 
-You can use `#[derive(Arbitrary)]` to automatically implement proptest's `Arbitrary` trait.
+You can use `#[derive(Arbitrary)]` to automatically implement proptest’s `Arbitrary` trait.
 
 ```rust
 use test_strategy::Arbitrary;
@@ -77,7 +92,7 @@ fn my_test(_x: u32, #[strategy(1..10u32)] y: u32, #[strategy(0..#y)] z: u32) {
 }
 ```
 
-## Attributes
+### Attributes
 
 Attributes can be written in the following positions.
 
@@ -96,7 +111,7 @@ Attributes can be written in the following positions.
 | [`#[proptest(async = ...)]`](#proptestasync--)      | ✔        |        |      |         |       |                    |
 | [`#[proptest(dump)]`](#proptestdump)                | ✔        |        |      |         |       |                    |
 
-## `#[derive(Arbitrary)]`
+### `#[derive(Arbitrary)]`
 
 You can implement `proptest::arbitrary::Arbitrary` automatically by adding `#[derive(Arbitrary)]` to struct or enum declaration.
 
@@ -137,7 +152,7 @@ impl Arbitrary for TestInput {
 }
 ```
 
-## `#[strategy]`
+### `#[strategy]`
 
 You can specify a strategy to generate values for the field by adding `#[strategy(...)]` to the field.
 
@@ -168,7 +183,7 @@ struct TestInput {
 }
 ```
 
-## `#[any]`
+### `#[any]`
 
 Instead of writing `#[strategy(any_with::<Type>(expr))]`, you can write `#[any(expr)]`.
 
@@ -220,7 +235,7 @@ struct Inner {
 }
 ```
 
-## `#[weight]`
+### `#[weight]`
 
 By default, all variants appear with equal probability.
 
@@ -258,7 +273,7 @@ enum TestInput {
 }
 ```
 
-## `#[map]`
+### `#[map]`
 
 Instead of using `prop_map` in `#[strategy(...)]`, `#[map(...)]` can be used.
 
@@ -329,7 +344,7 @@ struct T2 {
 let t2 = (any::<u32>(), any::<u32>()).prop_map(|(x, y)| T2 { x, y });
 ```
 
-If the input and output types of the function specified in `#[map]` are different, the value type of the strategy set in `#[strategy]` is the type of the function's input, not the type of the field.
+If the input and output types of the function specified in `#[map]` are different, the value type of the strategy set in `#[strategy]` is the type of the function’s input, not the type of the field.
 
 ```rust
 use proptest::arbitrary::any;
@@ -351,7 +366,7 @@ struct T2 {
 }
 ```
 
-## `#[filter]`
+### `#[filter]`
 
 By adding `#[filter]` , you can limit the values generated.
 
@@ -451,7 +466,7 @@ struct TestInput {
 }
 ```
 
-## `#[by_ref]`
+### `#[by_ref]`
 
 By default, if you use a variable with `#[strategy]`, `#[any]`, `#[map]` or `#[filter]` with `#` attached to it, the cloned value is set.
 
@@ -471,9 +486,9 @@ struct TestInput {
 }
 ```
 
-## `#[arbitrary]`
+### `#[arbitrary]`
 
-### `#[arbitrary(args = T)]`
+#### `#[arbitrary(args = T)]`
 
 Specifies the type of `Arbitrary::Parameters`.
 
@@ -495,7 +510,7 @@ struct TestInput {
 }
 ```
 
-### `#[arbitrary(bound(T1, T2, ..))]`
+#### `#[arbitrary(bound(T1, T2, ..))]`
 
 By default, if the type of field for which `#[strategy]` is not specified contains a generic parameter, that type is set to trait bounds.
 
@@ -572,11 +587,11 @@ struct TestInput<T1, T2> {
 }
 ```
 
-### `#[arbitrary(dump)]`
+#### `#[arbitrary(dump)]`
 
 Causes a compile error and outputs the code generated by `#[derive(Arbitrary)]` as an error message.
 
-## `#[proptest]`
+### `#[proptest]`
 
 `#[proptest]` is the attribute used instead of `#[test]` when defining a property test.
 
@@ -633,14 +648,14 @@ fn my_test_with_config_3(_input: i32) {
 }
 ```
 
-### `#[proptest(async = ...)]`
+#### `#[proptest(async = ...)]`
 
 Async functions can be tested by setting `async = ...` to the argument of `#[proptest]`.
 
 The following values are allowed after `async =`.
 The value specifies the asynchronous runtime used for the test.
 
-- "tokio"
+- “tokio”
 
 ```toml
 [dev-dependencies]
@@ -660,16 +675,18 @@ async fn my_test_async() {
 }
 ```
 
-### `#[proptest(dump)]`
+#### `#[proptest(dump)]`
 
 You can use `#[proptest(dump)]` and output the code generated by `#[proptest]` as an compile error message.
 
-```compile_fail
+```rust
 #[proptest(dump)]
 fn my_test(_input: i32) {
     // ...
 }
 ```
+
+<!-- cargo-reedme: end -->
 
 ## License
 

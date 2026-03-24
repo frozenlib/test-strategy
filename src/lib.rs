@@ -1,5 +1,4 @@
-// #![include_doc("../README.md", start("This crate provides two procedural macros, `#[derive(Arbitrary)]` and `#[proptest]`."))]
-//! This crate provides two procedural macros, `#[derive(Arbitrary)]` and `#[proptest]`.
+//! This crate provides two procedural macros, [`#[derive(Arbitrary)]`](Arbitrary) and [`#[proptest]`](macro@proptest).
 //!
 //! Each of these macros is an alternative to the following proptest's official macros.
 //!
@@ -27,7 +26,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! test-strategy = "0.4.5"
+#![doc = concat!("test-strategy = \"", env!("CARGO_PKG_VERSION"), "\"")]
 //! proptest = "1.6.0"
 //! ```
 //!
@@ -665,7 +664,6 @@
 //!     // ...
 //! }
 //! ```
-// #![include_doc("../README.md", end("## License"))]
 
 extern crate proc_macro;
 
