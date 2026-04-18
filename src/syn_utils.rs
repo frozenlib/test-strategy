@@ -120,31 +120,29 @@ impl SharpVals {
                     tokens.push(g_new);
                     continue;
                 }
-                TokenTree::Punct(p) => {
-                    if p.as_char() == '#' && p.spacing() == Spacing::Alone {
-                        if let Some(token) = iter.peek() {
-                            if let Some(key) = FieldKey::try_from_token(token) {
-                                let span = token.span();
-                                let allow = if &key == "self" {
-                                    self.self_span.get_or_insert(span);
-                                    self.allow_self
-                                } else {
-                                    self.vals.entry(key.clone()).or_insert(span);
-                                    self.allow_vals
-                                };
-                                if !allow {
-                                    bail!(span, "cannot use `#{}` in this position.", key);
-                                }
-                                if self.self_span.is_some() {
-                                    if let Some(key) = self.vals.keys().next() {
-                                        bail!(span, "cannot use both `#self` and `#{}`", key);
-                                    }
-                                }
-                                let ident = key.to_dummy_ident_with_span(span);
-                                tokens.extend(ident.to_token_stream());
-                                iter.next();
-                                continue;
+                TokenTree::Punct(p) if p.as_char() == '#' && p.spacing() == Spacing::Alone => {
+                    if let Some(token) = iter.peek() {
+                        if let Some(key) = FieldKey::try_from_token(token) {
+                            let span = token.span();
+                            let allow = if &key == "self" {
+                                self.self_span.get_or_insert(span);
+                                self.allow_self
+                            } else {
+                                self.vals.entry(key.clone()).or_insert(span);
+                                self.allow_vals
+                            };
+                            if !allow {
+                                bail!(span, "cannot use `#{}` in this position.", key);
                             }
+                            if self.self_span.is_some() {
+                                if let Some(key) = self.vals.keys().next() {
+                                    bail!(span, "cannot use both `#self` and `#{}`", key);
+                                }
+                            }
+                            let ident = key.to_dummy_ident_with_span(span);
+                            tokens.extend(ident.to_token_stream());
+                            iter.next();
+                            continue;
                         }
                     }
                 }
