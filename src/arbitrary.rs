@@ -702,13 +702,13 @@ impl StrategyBuilder {
                 for &cd_idx in &cd_idxs {
                     let item = &self.items[cd_idx];
                     if item.is_field {
-                        write!(&mut cd_str, "{} -> ", &item.key).unwrap();
+                        write!(&mut cd_str, "{} -> ", item.key).unwrap();
                     }
                 }
                 for &cd_idx in &cd_idxs {
                     let item = &self.items[cd_idx];
                     if item.is_field {
-                        write!(&mut cd_str, "{}", &item.key).unwrap();
+                        write!(&mut cd_str, "{}", item.key).unwrap();
                         break;
                     }
                 }

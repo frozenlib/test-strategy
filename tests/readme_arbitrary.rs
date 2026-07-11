@@ -188,6 +188,7 @@ fn filter_field_fn() {
         #[allow(dead_code)]
         x: u32,
     }
+    #[allow(dead_code)]
     fn is_even(x: &u32) -> bool {
         x % 2 == 0
     }
@@ -203,6 +204,7 @@ fn filter_struct_fn() {
     struct TestInput {
         x: u32,
     }
+    #[allow(dead_code)]
     fn x_is_even(input: &TestInput) -> bool {
         input.x % 2 == 0
     }

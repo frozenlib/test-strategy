@@ -316,6 +316,7 @@ mod sub_mod {
         a: u32,
     }
     impl TestArgsNoConstruct {
+        #[allow(dead_code)]
         pub fn new() -> Self {
             Self { a: 0 }
         }
@@ -970,6 +971,7 @@ fn args_with_struct_filter_fn() {
         x: i32,
     }
 
+    #[allow(dead_code)]
     fn is_valid_fn(_: i32) -> impl Fn(&TestStruct) -> bool {
         |_| true
     }
@@ -991,6 +993,7 @@ fn args_with_struct_filter_fn_x2() {
         x: i32,
     }
 
+    #[allow(dead_code)]
     fn is_valid_fn(_: i32) -> impl Fn(&TestStruct) -> bool {
         |_| true
     }
@@ -1013,6 +1016,7 @@ fn args_with_enum_filter_sharp_val() {
     }
 
     impl TestEnum {
+        #[allow(dead_code)]
         fn is_valid(&self, m: i32) -> bool {
             match self {
                 Self::A { x } => x % m != 0,
@@ -1040,6 +1044,7 @@ fn args_with_enum_filter_sharp_val_x2() {
     }
 
     impl TestEnum {
+        #[allow(dead_code)]
         fn is_valid(&self, m: i32) -> bool {
             match self {
                 Self::A { x } => x % m != 0,
@@ -1136,6 +1141,7 @@ fn args_with_field_filter_fn() {
         x: i32,
     }
 
+    #[allow(dead_code)]
     fn is_larger_than(t: i32) -> impl Fn(&i32) -> bool {
         move |x: &i32| *x > t
     }
@@ -1157,6 +1163,7 @@ fn args_with_field_filter_fn_x2() {
         x: i32,
     }
 
+    #[allow(dead_code)]
     fn is_larger_than(t: i32) -> impl Fn(&i32) -> bool {
         move |x: &i32| *x > t
     }
