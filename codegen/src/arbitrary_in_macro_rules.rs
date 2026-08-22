@@ -135,8 +135,8 @@ fn transform_test_function(fn_item: &mut ItemFn) {
 
     for stmt in &fn_item.block.stmts {
         match stmt {
-            Stmt::Item(item @ (Item::Struct(_) | Item::Enum(_))) => {
-                if has_derive_arbitrary_attr(item.attrs()) {
+            Stmt::Item(item @ (Item::Struct(_) | Item::Enum(_)))
+                if has_derive_arbitrary_attr(item.attrs()) => {
                     has_types = true;
 
                     let traits = extract_derive_traits(item.attrs());
@@ -152,10 +152,7 @@ fn transform_test_function(fn_item: &mut ItemFn) {
                         #macro_ident! { #cleaned_item };
                     };
                     modified_stmts.push(macro_call);
-                } else {
-                    modified_stmts.push(stmt.clone());
                 }
-            }
             _ => {
                 modified_stmts.push(stmt.clone());
             }
